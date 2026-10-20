@@ -21,6 +21,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: github.repository == 'under18dev/ippon-slides'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

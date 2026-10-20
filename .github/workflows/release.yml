@@ -16,6 +16,7 @@ permissions:
 
 jobs:
   release:
+    if: github.repository == 'under18dev/ippon-slides'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
