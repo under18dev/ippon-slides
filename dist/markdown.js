@@ -2,7 +2,7 @@
 //
 //   ---                       スライドの区切り
 //   ::center::                1 行目に置くとスライドの指示（center / title / wide / bg=xxx / size=1.5）
-//   ::right::                 ここから右カラム（left-wide / right-wide で幅を 1.4:1 / 1:1.4 に）
+//   ::right::                 ここから右カラム（left-wide / right-wide で幅を 1.4:1 / 1:1.4 に、center で上下中央揃え）
 //   ::note::                  発表者ノート（この行以降は本番に出ず発表者ビューだけに出る）
 //   -# 注釈                   小さい注釈
 //   ```hcl                    コード（hcl / console / sh / json / js / ts）
@@ -300,13 +300,14 @@ export function slide(src, http) {
     }
     let html;
     // ::right::（1:1）/ ::right left-wide::（1.4:1）/ ::right right-wide::（1:1.4）
-    const parts = body.split(/^::right(?:[ \t]+(left-wide|right-wide))?::[ \t]*$/m);
+    // center を付けるとカラムを上下中央揃えにする（::right center:: / ::right right-wide center::）
+    const parts = body.split(/^::right((?:[ \t]+(?:left-wide|right-wide|center))*)::[ \t]*$/m);
     if (parts.length === 3) {
-        const [first, mod, right] = parts;
+        const [first, mods, right] = parts;
         // 先頭の見出しはカラムの外（上）に出す
         const head = first.match(/^\s*(#{1,3} .*)\n/);
         const left = head ? first.replace(head[0], '') : first;
-        const cls = mod ? `cols ${mod}` : 'cols';
+        const cls = ['cols', ...new Set(mods.trim().split(/[ \t]+/).filter(Boolean))].join(' ');
         html =
             (head ? blocks(head[1], http) : '') +
                 `<div class="${cls}"><div>${blocks(left, http)}</div><div>${blocks(right, http)}</div></div>`;
