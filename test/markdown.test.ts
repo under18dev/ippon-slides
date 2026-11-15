@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { httpKey, parse, parseHttp, scanHttp } from '../src/markdown.ts'
+import { httpKey, parse, parseHttp, parseQr, scanHttp } from '../src/markdown.ts'
 import type { HttpMap } from '../src/markdown.ts'
 
 test('--- でスライドを分ける（コードブロック内の --- は無視）', () => {
@@ -147,4 +147,28 @@ test('::http:: の取得失敗はエラー状態で焼き込む', () => {
   const [s = ''] = parse('::http url=https://e.x/api::\n', http).sections
   assert.match(s, /data-state="error"/)
   assert.match(s, /<span class="http-errmsg">✗ getaddrinfo ENOTFOUND e.x<\/span>/)
+})
+
+test('::qr:: をパースする（url 必須・caption はオプトイン）', () => {
+  assert.deepEqual(parseQr('::qr url=https://e.x/a::'), { url: 'https://e.x/a', caption: false })
+  assert.deepEqual(parseQr('::qr https://e.x/a caption::'), { url: 'https://e.x/a', caption: true })
+  assert.equal(parseQr('::qr caption::'), null)
+  assert.equal(parseQr('::qr url=https://e.x/a'), null)
+})
+
+test('::qr:: は SVG の QR になり、caption を付けたときだけ URL を出す', () => {
+  const [plain = ''] = parse('::qr url=https://e.x/?a=1&b=2::\n').sections
+  assert.match(plain, /<figure class="qr"><svg [^>]*viewBox="0 0 \d+ \d+"/)
+  assert.doesNotMatch(plain, /figcaption/)
+  const [withCap = ''] = parse('::qr url=https://e.x/?a=1&b=2 caption::\n').sections
+  assert.match(withCap, /<figcaption>https:\/\/e\.x\/\?a=1&amp;b=2<\/figcaption><\/figure>/)
+})
+
+test('::qr:: の URL が長すぎるとエラーにする', () => {
+  assert.throws(() => parse(`::qr url=https://e.x/${'a'.repeat(300)}::\n`), /::qr:: の URL が長すぎます/)
+})
+
+test('コードフェンス内の ::qr:: はそのまま', () => {
+  const [s = ''] = parse('```\n::qr url=https://e.x::\n```\n').sections
+  assert.doesNotMatch(s, /class="qr"/)
 })
