@@ -139,6 +139,26 @@ body {
   color: var(--slide-muted);
 }
 
+/* `::qr::` URL の QR コード（背景色に関係なく読めるよう白地のまま） */
+.slide .qr {
+  margin: 1rem auto;
+  text-align: center;
+}
+.slide .qr svg {
+  display: block;
+  width: min(calc(38vh * var(--slide-size, 1)), 100%);
+  height: auto;
+  margin: 0 auto;
+  border-radius: 6px;
+}
+.slide .qr figcaption {
+  margin-top: 0.4rem;
+  font-family: var(--slide-mono);
+  font-size: 0.85rem;
+  color: var(--slide-muted);
+  overflow-wrap: anywhere;
+}
+
 /* `::wide::` 左右の余白を詰める */
 .slide.wide {
   padding-left: 3vw;
