@@ -189,6 +189,8 @@ ippon serve slide.md
 - `curl -s http://localhost:<port>/__current-slide` で、表示中のスライドの行範囲と
   **デッキで選択中の文字列**が取れます。コーディングエージェントに「ここ直して」と頼むときに使えます
   （[詳しく](docs/serve.md#コーディングエージェントと一緒に直す__current-slide)）。
+- `ippon skills init` で、これを使うエージェント用スキルを `.claude/skills` と `.agents/skills` に置けます。
+  ブラウザで文字を選んで「ここ直して」と頼むと、エージェントが `ippon current` で該当箇所を読んで直します。
 
 > Wi-Fi の「クライアント分離（AP isolation）」が有効な環境では、スマホから PC に
 > 接続できないことがあります。その場合はテザリングや別の Wi-Fi をお試しください。

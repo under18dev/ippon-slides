@@ -57,14 +57,16 @@ Claude Code などのコーディングエージェントにこれを読ませ�
 「ここ、もっと短く」と頼むだけで、エージェントが Markdown の該当箇所を見つけて直せます。
 保存すればデッキは自動で再読み込みされ、同じスライドに戻ります。
 
-エージェントにポートが伝わるよう `-p` でポートを固定し、プロジェクトの `CLAUDE.md`（や `AGENTS.md`）に
-次のように書いておくと便利です。
+エージェントに使い方を教えるには、スライドのあるディレクトリで次を実行します。
 
-```md
-スライドは `ippon serve slide.md -p 3030` でプレビューしている。
-「ここ直して」「このスライド」と言われたら、まず `curl -s http://localhost:3030/__current-slide` を実行し、
-`selection`（選択中の文字列）と `lines`（行範囲）を手がかりに `file` の該当箇所を編集する。
+```sh
+ippon skills init
 ```
+
+`.claude/skills/ippon-slides/SKILL.md`（Claude Code）と `.agents/skills/ippon-slides/SKILL.md`（Codex など）が
+置かれます。以後「ここ直して」と頼むと、エージェントは `ippon current` で表示中のスライドと選択中の文字列を読んでから
+Markdown を直します。`ippon current` は起動中の `ippon serve` を自分で探すので、ポートを固定する必要はありません
+（[CLI リファレンス](cli.md#current)）。
 
 `/__current-slide` はトークン不要ですが、**この PC から `localhost` 宛てに来たリクエストだけ**に応えます
 （スマホや LAN の他の端末からは読めません）。
