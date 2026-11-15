@@ -68,6 +68,7 @@
       } catch {
         return
       }
+      if (m.type === 'reload') return location.reload() // Markdown が書き換わった（ノートを読み直す）
       if (m.type !== 'state') return
       if (typeof m.idx === 'number') idx = m.idx
       running = !!m.running

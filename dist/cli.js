@@ -155,6 +155,9 @@ async function runServe(input, opts) {
     console.log(``);
     console.log(`  ↑ の QR をスマホのカメラで読み取るとリモコンになります（PC と同じ Wi-Fi に接続）`);
     console.log(`  発表者ビュー（p）にも QR が出ます。Ctrl+C で終了`);
+    console.log(``);
+    console.log(`  表示中のスライド: curl -s ${r.currentUrl}`);
+    console.log(`  （選択中の文字列と Markdown の行番号を返します。コーディングエージェントに「ここ直して」と頼むときに）`);
 }
 // ---------------------------------------------------------------
 // init

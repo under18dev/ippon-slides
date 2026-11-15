@@ -389,6 +389,23 @@ export function splitSlides(md: string): string[] {
   return chunks(md).map((c) => c.lines.join('\n'))
 }
 
+/**
+ * スライドごとの元ファイル上の行範囲 [開始, 終了]（1 始まり・両端を含む・前後の空行は除く）。
+ * parse() の sections と同じ並び。ippon serve の /__current-slide が使う
+ */
+export function slideLines(md: string): [number, number][] {
+  const src = md.replace(/\r\n/g, '\n')
+  const [, body] = frontmatter(src)
+  const offset = src.slice(0, src.length - body.length).split('\n').length - 1
+  return chunks(body).map(({ start, lines }) => {
+    let a = 0
+    let b = lines.length - 1
+    while (!lines[a]!.trim()) a++
+    while (!lines[b]!.trim()) b--
+    return [offset + start + a + 1, offset + start + b + 1]
+  })
+}
+
 export function slide(src: string, http?: HttpMap): { section: string; note: string } {
   const classes = ['slide']
   let style = ''

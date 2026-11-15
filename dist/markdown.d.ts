@@ -42,6 +42,11 @@ export declare function parseHttp(line: string): HttpSpec | null;
 /** Markdown 全体から `::http::` のリクエストを拾う（コードフェンス内は無視）。http.ts が使う */
 export declare function scanHttp(md: string): HttpSpec[];
 export declare function splitSlides(md: string): string[];
+/**
+ * スライドごとの元ファイル上の行範囲 [開始, 終了]（1 始まり・両端を含む・前後の空行は除く）。
+ * parse() の sections と同じ並び。ippon serve の /__current-slide が使う
+ */
+export declare function slideLines(md: string): [number, number][];
 export declare function slide(src: string, http?: HttpMap): {
     section: string;
     note: string;
