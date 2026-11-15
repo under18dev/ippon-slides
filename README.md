@@ -117,6 +117,7 @@ const app = new Hono()
 | `::size=1.5::` | 文字サイズの倍率 |
 | `::right::` | ここから右カラム。先頭の見出しはカラムの上に出る |
 | `::right left-wide::` / `::right right-wide::` | カラム幅を 1.4:1 / 1:1.4 にする |
+| `::right center::` | カラムを上下中央揃えにする。幅指定と併用可（`::right right-wide center::`） |
 | `::note::` | この行以降は発表者ノート。本番には出ず発表者ビュー（`p`）だけに出る |
 | `::http method=GET url=...::` | HTTP リクエストのプレイグラウンド（下記） |
 | `-# 注釈` | 小さい注釈 |
