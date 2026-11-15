@@ -159,6 +159,9 @@ body {
 .slide .cols.right-wide {
   grid-template-columns: 1fr 1.4fr;
 }
+.slide .cols.center {
+  align-items: center;
+}
 .slide .cols > * > :first-child {
   margin-top: 0;
 }
