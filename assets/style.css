@@ -141,12 +141,14 @@ body {
 
 /* `::qr::` URL の QR コード（背景色に関係なく読めるよう白地のまま） */
 .slide .qr {
+  /* 幅は figure 側で決める（SVG の素の大きさに縮まないように） */
+  width: min(calc(38vh * var(--slide-size, 1)), 100%);
   margin: 1rem auto;
   text-align: center;
 }
 .slide .qr svg {
   display: block;
-  width: min(calc(38vh * var(--slide-size, 1)), 100%);
+  width: 100%;
   height: auto;
   margin: 0 auto;
   border-radius: 6px;
