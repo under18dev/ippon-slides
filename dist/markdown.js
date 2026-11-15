@@ -4,10 +4,12 @@
 //   ::center::                1 行目に置くとスライドの指示（center / title / wide / bg=xxx / size=1.5）
 //   ::right::                 ここから右カラム（left-wide / right-wide で幅を 1.4:1 / 1:1.4 に、center で上下中央揃え）
 //   ::note::                  発表者ノート（この行以降は本番に出ず発表者ビューだけに出る）
+//   ::qr url=... caption::    URL の QR コード（SVG。caption で下に URL も出す）
 //   -# 注釈                   小さい注釈
 //   ```hcl                    コード（hcl / console / sh / json / js / ts）
 //   !! 行                     コードの行を強調（行頭の "!! " は消える）
 import { esc, highlight } from './highlight.js';
+import { qrSvg } from './qr.js';
 export const BG = {
     blue: '#0d76bc',
     orange: '#ff6a00',
@@ -105,6 +107,14 @@ export function blocks(src, http) {
                 continue;
             }
         }
+        if (line.startsWith('::qr')) {
+            const spec = parseQr(line);
+            if (spec) {
+                flush();
+                html += qrBlock(spec);
+                continue;
+            }
+        }
         if (!line.trim()) {
             flush();
             continue;
@@ -150,6 +160,36 @@ export function blocks(src, http) {
     }
     flush();
     return html;
+}
+const QR_LINE = /^::qr[ \t]+(.+?)[ \t]*::[ \t]*$/;
+/** `::qr url=...::` 行をパースする。url が無ければ null（= ただの段落） */
+export function parseQr(line) {
+    const m = line.match(QR_LINE);
+    if (!m)
+        return null;
+    let url = '';
+    let caption = false;
+    for (const tok of m[1].trim().split(/[ \t]+/)) {
+        if (tok === 'caption')
+            caption = true;
+        else if (tok.startsWith('url='))
+            url = tok.slice(4);
+        // `::qr https://...::` のように URL を裸で書いた場合も許す
+        else if (/^https?:\/\//i.test(tok))
+            url = tok;
+    }
+    return url ? { url, caption } : null;
+}
+function qrBlock(spec) {
+    let svg;
+    try {
+        svg = qrSvg(spec.url, 1);
+    }
+    catch {
+        throw new Error(`::qr:: の URL が長すぎます（213 バイトまで）: ${spec.url}`);
+    }
+    const caption = spec.caption ? `<figcaption>${esc(spec.url)}</figcaption>` : '';
+    return `<figure class="qr">${svg}${caption}</figure>`;
 }
 const HTTP_LINE = /^::http[ \t]+(.+?)[ \t]*::[ \t]*$/;
 /** `::http method=GET url=...::` 行をパースする。url が無ければ null（= ただの段落） */

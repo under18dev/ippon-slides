@@ -29,6 +29,14 @@ export type HttpMap = Map<string, HttpResult>;
 export declare const httpKey: (s: HttpSpec) => string;
 export declare function inline(text: string): string;
 export declare function blocks(src: string, http?: HttpMap): string;
+/** `::qr url=... caption::` の指定 */
+export interface QrSpec {
+    url: string;
+    /** QR の下に URL を出すか */
+    caption: boolean;
+}
+/** `::qr url=...::` 行をパースする。url が無ければ null（= ただの段落） */
+export declare function parseQr(line: string): QrSpec | null;
 /** `::http method=GET url=...::` 行をパースする。url が無ければ null（= ただの段落） */
 export declare function parseHttp(line: string): HttpSpec | null;
 /** Markdown 全体から `::http::` のリクエストを拾う（コードフェンス内は無視）。http.ts が使う */

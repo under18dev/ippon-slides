@@ -109,6 +109,22 @@ const x = 1
 ここは手元のメモ。
 ```
 
+## QR コード（`::qr::`）
+
+`::qr url=https://...::` と書くと、その URL の QR コードを SVG でスライドに埋め込みます。
+ビルド時に生成するのでネットワークは使わず、PDF にもそのまま出ます。
+
+```md
+::qr url=https://github.com/under18/ippon-slides::
+::qr https://example.com caption::
+```
+
+- `url=` は省略して URL だけを書いても構いません。
+- `caption` を付けると、QR の下に URL を小さく表示します（既定では出しません）。
+- 背景色（`bg=`）に関係なく読み取れるよう、QR は常に白地です。
+- `::right::` のカラムの中にも置けます。
+- URL は 213 バイトまでです。超えるとビルドがエラーになります。
+
 ## HTTP プレイグラウンド（`::http::`）
 
 `::http method=GET url=https://...::` でスライド上に HTTP レスポンスを表示できます。
