@@ -688,6 +688,51 @@ body {
   }
 }
 
+/* ---------- 縦読みモード（スマホの縦持ち。deck.ts が body.reading を付ける） ---------- */
+
+@media screen {
+  body.reading {
+    overflow-y: auto;
+  }
+  body.reading #deck {
+    position: static;
+  }
+  body.reading .slide {
+    display: flex;
+    position: relative;
+    inset: auto;
+    /* 少なくとも 16:9 の高さ。長いスライドは中身に合わせて伸びる */
+    min-height: 56.25vw;
+    padding: 8vw 6vw;
+    overflow: visible;
+    animation: none;
+    border-bottom: 1px solid var(--slide-border);
+  }
+  body.reading #progress,
+  body.reading #counter,
+  body.reading #timer,
+  body.reading #hint {
+    display: none;
+  }
+}
+.reading-toggle {
+  position: fixed;
+  left: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  z-index: 15;
+  padding: 8px 14px;
+  font: 600 0.85rem system-ui, -apple-system, 'Hiragino Sans', sans-serif;
+  color: #fff;
+  background: rgba(40, 40, 44, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.reading-toggle[hidden],
+body.overview .reading-toggle {
+  display: none;
+}
+
 /* ---------- overview（o / Esc） ---------- */
 
 #overview {
@@ -918,6 +963,7 @@ body.presenter #overview {
   #hint,
   #overview,
   #presenter,
+  .reading-toggle,
   .copy-btn,
   .http-send,
   .zoom {
