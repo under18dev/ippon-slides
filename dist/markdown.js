@@ -291,22 +291,28 @@ function httpBlock(spec, http) {
 // ---------------------------------------------------------------
 // slide
 // ---------------------------------------------------------------
-export function splitSlides(md) {
-    const slides = [];
+/** `---` で区切ったスライドの塊（md 内の 0 始まりの開始行つき）。中身が空の塊は除く */
+function chunks(md) {
+    const out = [];
     let cur = [];
+    let start = 0;
     let inFence = false;
-    for (const line of md.split('\n')) {
+    md.split('\n').forEach((line, i) => {
         if (/^```/.test(line))
             inFence = !inFence;
         if (!inFence && /^---\s*$/.test(line)) {
-            slides.push(cur.join('\n'));
+            out.push({ start, lines: cur });
             cur = [];
+            start = i + 1;
         }
         else
             cur.push(line);
-    }
-    slides.push(cur.join('\n'));
-    return slides.filter((s) => s.trim());
+    });
+    out.push({ start, lines: cur });
+    return out.filter((c) => c.lines.join('\n').trim());
+}
+export function splitSlides(md) {
+    return chunks(md).map((c) => c.lines.join('\n'));
 }
 export function slide(src, http) {
     const classes = ['slide'];
