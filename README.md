@@ -119,6 +119,7 @@ const app = new Hono()
 | `::right left-wide::` / `::right right-wide::` | カラム幅を 1.4:1 / 1:1.4 にする |
 | `::note::` | この行以降は発表者ノート。本番には出ず発表者ビュー（`p`）だけに出る |
 | `::http method=GET url=...::` | HTTP リクエストのプレイグラウンド（下記） |
+| `::qr url=...::` | URL の QR コード（SVG）。`caption` を付けると下に URL も出す |
 | `-# 注釈` | 小さい注釈 |
 | ` ```hcl ` | コード。`hcl` / `console` / `sh` / `json` / `js` / `ts` をハイライト |
 | `!! ` | コードの行頭に付けるとその行を強調 |
