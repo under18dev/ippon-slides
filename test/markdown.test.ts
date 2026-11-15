@@ -53,6 +53,15 @@ test('::note:: 以降は発表者ノート（本番 section には出ず notes �
   assert.equal(notes[0], '<p>メモ</p>')
 })
 
+test('::right center:: でカラムを上下中央揃えにする（幅指定と併用できる）', () => {
+  const [a = ''] = parse('- a\n\n::right center::\n\nb\n').sections
+  assert.match(a, /<div class="cols center"><div><ul><li>a<\/li><\/ul><\/div><div><p>b<\/p><\/div><\/div>/)
+  const [b = ''] = parse('- a\n\n::right center right-wide::\n\nb\n').sections
+  assert.match(b, /<div class="cols center right-wide">/)
+  const [c = ''] = parse('- a\n\n::right left-wide center::\n\nb\n').sections
+  assert.match(c, /<div class="cols left-wide center">/)
+})
+
 test('::note:: と ::right:: は共存できる', () => {
   const { sections, notes } = parse('- a\n\n::right::\n\nb\n\n::note::\n\nメモ\n')
   const s = sections[0] ?? ''
