@@ -76,3 +76,4 @@ Pipeline: `cli.ts` → `render.ts` → `markdown.ts` → `highlight.ts`, plus `h
   - `perf`: performance
 - Make **one commit per type**: don't mix a refactor or a fix into a `feat` commit. Before review, squash or fix up throwaway commits (e.g. 「とりあえず」, "WIP") with `git rebase`.
 - When you change Markdown syntax or CLI options, update the tables in README.md and the `HELP` text in `cli.ts` too.
+- New syntax must follow the rules in `docs/syntax.md` (「記法の決まり」): slide-wide look goes in the first-line directive, things placed in the slide are block lines `::name kw key=value::` (the main value may omit its key), line-level marks are prefixes. Unreadable syntax falls back to plain text; only clearly invalid values (e.g. a non-numeric `brightness=`) throw. Keep existing syntax backward compatible within a major version.
