@@ -5,6 +5,7 @@
 //   ::right::                 ここから右カラム（left-wide / right-wide で幅を 1.4:1 / 1:1.4 に、center で上下中央揃え）
 //   ::note::                  発表者ノート（この行以降は本番に出ず発表者ビューだけに出る）
 //   ::qr url=... caption::    URL の QR コード（SVG。caption で下に URL も出す）
+//   ::background path=...::   背景画像（brightness / opacity で明るさ・濃さ。::right:: の後ろなら右半分）
 //   -# 注釈                   小さい注釈
 //   ```hcl                    コード（hcl / console / sh / json / js / ts）
 //   !! 行                     コードの行を強調（行頭の "!! " は消える）
@@ -72,7 +73,10 @@ function table(rows) {
     return html + '</tbody></table>';
 }
 const LIST_ITEM = /^(\s*)([-*]|\d+\.)\s+(.*)$/;
-export function blocks(src, http) {
+/**
+ * @param ratio 右カラムのとき、左カラムが占める割合（::background:: を右半分に敷く）
+ */
+export function blocks(src, http, ratio) {
     const lines = src.split('\n');
     let html = '';
     let para = [];
@@ -104,6 +108,14 @@ export function blocks(src, http) {
             if (spec) {
                 flush();
                 html += httpBlock(spec, http);
+                continue;
+            }
+        }
+        if (line.startsWith('::background')) {
+            const spec = parseBackground(line);
+            if (spec) {
+                flush();
+                html += backgroundBlock(spec, ratio);
                 continue;
             }
         }
@@ -190,6 +202,38 @@ function qrBlock(spec) {
     }
     const caption = spec.caption ? `<figcaption>${esc(spec.url)}</figcaption>` : '';
     return `<figure class="qr">${svg}${caption}</figure>`;
+}
+const BACKGROUND_LINE = /^::background[ \t]+(.+?)[ \t]*::[ \t]*$/;
+const NUMBER = /^(?:\d+(?:\.\d+)?|\.\d+)%?$/;
+/** `::background path=...::` 行をパースする。path が無ければ null（= ただの段落） */
+export function parseBackground(line) {
+    const m = line.match(BACKGROUND_LINE);
+    if (!m)
+        return null;
+    const spec = { path: '' };
+    for (const tok of m[1].trim().split(/[ \t]+/)) {
+        const kv = tok.match(/^(path|brightness|opacity)=(.*)$/);
+        if (!kv) {
+            // `::background img/bg.jpg::` のようにパスを裸で書いた場合も許す
+            if (!tok.includes('='))
+                spec.path = tok;
+            continue;
+        }
+        const [, key, value] = kv;
+        if (key !== 'path' && !NUMBER.test(value))
+            throw new Error(`::background:: の ${key} は数値で指定してください（例: ${key}=0.6）: ${value}`);
+        spec[key] = value;
+    }
+    return spec.path ? spec : null;
+}
+function backgroundBlock(spec, ratio) {
+    const style = [
+        ratio !== undefined ? `--ratio:${ratio}` : '',
+        spec.opacity ? `opacity:${spec.opacity}` : '',
+        spec.brightness ? `filter:brightness(${spec.brightness})` : '',
+    ].filter(Boolean);
+    // <img> にしておくと、相対パスの書き換え・--inline・serve の静的配信がそのまま効く
+    return `<img src="${esc(spec.path)}" class="slide-bg${ratio !== undefined ? ' right' : ''}" alt=""${style.length ? ` style="${style.join(';')}"` : ''}>`;
 }
 const HTTP_LINE = /^::http[ \t]+(.+?)[ \t]*::[ \t]*$/;
 /** `::http method=GET url=...::` 行をパースする。url が無ければ null（= ただの段落） */
@@ -371,10 +415,13 @@ export function slide(src, http) {
         // 先頭の見出しはカラムの外（上）に出す
         const head = first.match(/^\s*(#{1,3} .*)\n/);
         const left = head ? first.replace(head[0], '') : first;
-        const cls = ['cols', ...new Set(mods.trim().split(/[ \t]+/).filter(Boolean))].join(' ');
+        const flags = new Set(mods.trim().split(/[ \t]+/).filter(Boolean));
+        const cls = ['cols', ...flags].join(' ');
+        // 左カラムの割合（右カラムの ::background:: を右半分に敷くのに使う）
+        const ratio = flags.has('left-wide') ? 1.4 / 2.4 : flags.has('right-wide') ? 1 / 2.4 : 0.5;
         html =
             (head ? blocks(head[1], http) : '') +
-                `<div class="${cls}"><div>${blocks(left, http)}</div><div>${blocks(right, http)}</div></div>`;
+                `<div class="${cls}"><div>${blocks(left, http)}</div><div>${blocks(right, http, Number(ratio.toFixed(4)))}</div></div>`;
     }
     else {
         html = blocks(body, http);

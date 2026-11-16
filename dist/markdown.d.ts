@@ -28,7 +28,10 @@ export interface HttpResult {
 export type HttpMap = Map<string, HttpResult>;
 export declare const httpKey: (s: HttpSpec) => string;
 export declare function inline(text: string): string;
-export declare function blocks(src: string, http?: HttpMap): string;
+/**
+ * @param ratio 右カラムのとき、左カラムが占める割合（::background:: を右半分に敷く）
+ */
+export declare function blocks(src: string, http?: HttpMap, ratio?: number): string;
 /** `::qr url=... caption::` の指定 */
 export interface QrSpec {
     url: string;
@@ -37,6 +40,16 @@ export interface QrSpec {
 }
 /** `::qr url=...::` 行をパースする。url が無ければ null（= ただの段落） */
 export declare function parseQr(line: string): QrSpec | null;
+/** `::background path=... brightness=0.6 opacity=0.8::` の指定 */
+export interface BackgroundSpec {
+    path: string;
+    /** 明るさ（1 がそのまま、0.5 で半分の暗さ） */
+    brightness?: string;
+    /** 濃さ（1 がそのまま、0 で見えない。下のスライドの背景色が透ける） */
+    opacity?: string;
+}
+/** `::background path=...::` 行をパースする。path が無ければ null（= ただの段落） */
+export declare function parseBackground(line: string): BackgroundSpec | null;
 /** `::http method=GET url=...::` 行をパースする。url が無ければ null（= ただの段落） */
 export declare function parseHttp(line: string): HttpSpec | null;
 /** Markdown 全体から `::http::` のリクエストを拾う（コードフェンス内は無視）。http.ts が使う */

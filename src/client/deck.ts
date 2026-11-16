@@ -550,8 +550,8 @@
       })
     })
 
-    // 画像はクリックで拡大
-    s.querySelectorAll<HTMLImageElement>('img').forEach((img) => {
+    // 画像はクリックで拡大（::background:: の背景画像は除く）
+    s.querySelectorAll<HTMLImageElement>('img:not(.slide-bg)').forEach((img) => {
       img.addEventListener('click', (e) => {
         e.stopPropagation()
         openImageZoom(img)
