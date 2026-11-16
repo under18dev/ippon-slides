@@ -3,8 +3,8 @@ import { basename, dirname, extname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { current, real, register, skillsInit } from './agent.js';
 import { fetchAll } from './http.js';
-import { scanHttp } from './markdown.js';
-import { toPdf } from './pdf.js';
+import { frontmatter, scanHttp } from './markdown.js';
+import { toPdf, toPng } from './pdf.js';
 import { qrTerminal } from './qr.js';
 import { render } from './render.js';
 import { serve } from './serve.js';
@@ -16,6 +16,7 @@ const HELP = `ippon v${pkg.version} — 1 枚 1 メッセージのスライド�
   ippon <input.md> [options]         build の省略形
   ippon serve <input.md> [options]   ローカルで配信し、スマホをリモコンにする
   ippon init [file]                  サンプルの Markdown を作る（デフォルト: slide.md）
+  ippon ogp <input.md> [options]     表紙を OGP 画像（1200×630 の PNG）にする
   ippon current [input.md]           serve 中のデッキで表示中のスライドと選択中の文字列を JSON で出す
   ippon skills init [dir]            current を使うエージェント用スキルを .claude/skills と .agents/skills に置く
 
@@ -29,6 +30,12 @@ build のオプション:
       --inline               画像を HTML に埋め込む（HTML 1 ファイルだけで画像も出る）
       --no-fetch             ::http:: のレスポンスをビルド時に取得しない
       --browser-path <path>  PDF に使うブラウザ（環境変数 CHROME_PATH でも可）
+
+ogp のオプション:
+  -o, --output <path>        出力先（デフォルト: <input>.png）。ディレクトリを指定するとその中に作る
+      --css <file>           追加の CSS
+      --browser-path <path>  使うブラウザ（環境変数 CHROME_PATH でも可）
+  frontmatter に url: を書くと、build した HTML の og:image にこの画像の URL が入る
 
 serve のオプション:
   -p, --port <n>             待ち受けポート（省略時は空きポートを自動）
@@ -46,6 +53,7 @@ skills init のオプション:
   ippon build slide.md --html --pdf -o dist/talk
   ippon build slide.md --html -w
   ippon build slide.md --inline
+  ippon ogp slide.md
   ippon serve slide.md
   ippon skills init
 `;
@@ -114,7 +122,8 @@ async function build(input, opts) {
     for (const { format, path } of outputs(input, opts)) {
         mkdirSync(dirname(path), { recursive: true });
         if (format === 'html') {
-            const { html, count, missing } = render(md, { baseDir, outDir: dirname(path), css, http, inline: opts.inline });
+            const ogImage = `${basename(input, extname(input))}.png`; // ippon ogp が書き出す画像
+            const { html, count, missing } = render(md, { baseDir, outDir: dirname(path), css, http, inline: opts.inline, ogImage });
             writeFileSync(path, html);
             console.log(`${time()} ✓ ${count} slides → ${path}`);
             if (missing.length)
@@ -149,6 +158,24 @@ function watchBuild(input, opts) {
 // ---------------------------------------------------------------
 // serve
 // ---------------------------------------------------------------
+// ---------------------------------------------------------------
+// ogp
+// ---------------------------------------------------------------
+async function ogp(input, opts) {
+    const md = readFileSync(input, 'utf8');
+    const css = opts.css ? readFileSync(opts.css, 'utf8') : '';
+    const name = `${basename(input, extname(input))}.png`;
+    const { output } = opts;
+    const dirLike = output && (output.endsWith('/') || output.endsWith('\\') || (existsSync(output) && statSync(output).isDirectory()));
+    const out = resolve(!output ? join(dirname(input), name) : dirLike ? join(output, name) : output);
+    mkdirSync(dirname(out), { recursive: true });
+    // 画像は file:// URL で読ませる（PDF と同じ）
+    const { html } = render(md, { baseDir: dirname(resolve(input)), css });
+    await toPng(html, out, { browserPath: opts.browserPath });
+    console.log(`${time()} ✓ 表紙 → ${out}（1200×630）`);
+    if (!frontmatter(md)[0].url)
+        console.log(`${time()}   ↳ frontmatter に url: を書くと、build した HTML の og:image にこの画像の URL が入ります`);
+}
 async function runServe(input, opts) {
     let port;
     if (opts.port !== undefined) {
@@ -301,6 +328,16 @@ export async function main(argv) {
         if (written.length)
             console.log(`  ippon serve 中に「ここ直して」と頼むと、エージェントが ippon current で表示中のスライドを読みます`);
         return;
+    }
+    if (cmd === 'ogp') {
+        const input = rest[0];
+        if (!input)
+            throw new Error('入力の Markdown を指定してください（例: ippon ogp slide.md）');
+        if (rest.length > 1)
+            throw new Error(`入力は 1 つだけ指定してください: ${rest.join(' ')}`);
+        if (!existsSync(input))
+            throw new Error(`${input} が見つかりません`);
+        return ogp(input, opts);
     }
     if (cmd === 'serve') {
         const input = rest[0];

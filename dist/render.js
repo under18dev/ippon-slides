@@ -60,7 +60,28 @@ function rewriteImages(html, baseDir, outDir, inline, missing) {
         return pre + esc(url + suffix) + post;
     });
 }
-export function render(md, { baseDir, outDir, css = '', http, inline = false }) {
+/** SNS で共有したときのカード（OGP / X）。og:image は絶対 URL が要るので frontmatter の url: から作る */
+function ogp(meta, ogImage) {
+    const tags = [
+        ['property', 'og:type', 'website'],
+        ['property', 'og:title', meta.title],
+        ['property', 'og:description', meta.description],
+        ['property', 'og:url', meta.url],
+    ];
+    const image = meta.image || ogImage;
+    if (image) {
+        try {
+            tags.push(['property', 'og:image', new URL(image, meta.url).href]);
+            tags.push(['name', 'twitter:card', 'summary_large_image']);
+        }
+        catch { } // url: が無く image も相対パスなら出さない（相対 URL の og:image は SNS が読まない）
+    }
+    return tags
+        .filter(([, , v]) => v)
+        .map(([k, n, v]) => `<meta ${k}="${n}" content="${esc(v)}">\n`)
+        .join('');
+}
+export function render(md, { baseDir, outDir, css = '', http, inline = false, ogImage }) {
     const { meta, sections, notes } = parse(md, http);
     const style = readFileSync(join(assets, 'style.css'), 'utf8') + (css ? `\n/* --css */\n${css}` : '');
     const script = readFileSync(join(assets, 'deck.js'), 'utf8');
@@ -78,7 +99,7 @@ export function render(md, { baseDir, outDir, css = '', http, inline = false }) 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap">
 <title>${esc(meta.title || 'slides')}</title>
 ${meta.description ? `<meta name="description" content="${esc(meta.description)}">\n` : ''}${meta.author ? `<meta name="author" content="${esc(meta.author)}">\n` : ''}<meta name="generator" content="ippon-slides">
-<style>${style}</style>
+${ogp(meta, ogImage)}<style>${style}</style>
 </head>
 <body>
 <div id="deck">

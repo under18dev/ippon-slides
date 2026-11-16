@@ -1,4 +1,4 @@
-// PDF 出力。ローカルの Chrome / Chromium / Edge をヘッドレスで起動して印刷する。
+// PDF / PNG（OGP 画像）出力。ローカルの Chrome / Chromium / Edge をヘッドレスで起動して印刷・撮影する。
 // 依存パッケージなし（puppeteer も使わない）。
 import { spawn } from 'node:child_process';
 import { existsSync, mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs';
@@ -83,4 +83,19 @@ async function headless(html, out, what, browserPath, extra) {
  */
 export async function toPdf(html, out, { browserPath } = {}) {
     await headless(html, out, 'PDF', browserPath, ['--no-pdf-header-footer', `--print-to-pdf=${out}`]);
+}
+// 表紙だけを、ナビの UI を隠しフェードインも止めて撮る
+const COVER_CSS = '<style>#hint,#counter,#timer,#progress,.reading-toggle{display:none!important}.slide{animation:none!important}</style>';
+/**
+ * 表紙（1 枚目）を PNG で書き出す（OGP 画像用）
+ * @param html file:// URL の画像で組み立てた HTML
+ * @param out  出力する PNG のパス
+ */
+export async function toPng(html, out, { browserPath, width = 1200, height = 630 } = {}) {
+    await headless(html.replace('</head>', `${COVER_CSS}\n</head>`), out, 'PNG', browserPath, [
+        '--hide-scrollbars',
+        '--force-device-scale-factor=1',
+        `--window-size=${width},${height}`,
+        `--screenshot=${out}`,
+    ]);
 }

@@ -10,6 +10,11 @@ export interface RenderOptions {
     http?: HttpMap;
     /** 相対パスの画像を data URI で埋め込む（--inline） */
     inline?: boolean;
+    /**
+     * og:image の既定のファイル名（ippon ogp が書き出す <input>.png）。
+     * frontmatter に url: があるときだけ、それを基準にした絶対 URL で og:image を出す
+     */
+    ogImage?: string;
 }
 export interface RenderResult {
     html: string;
@@ -18,4 +23,4 @@ export interface RenderResult {
     /** inline のときに埋め込めなかった画像（Markdown に書かれたパス） */
     missing: string[];
 }
-export declare function render(md: string, { baseDir, outDir, css, http, inline }: RenderOptions): RenderResult;
+export declare function render(md: string, { baseDir, outDir, css, http, inline, ogImage }: RenderOptions): RenderResult;
