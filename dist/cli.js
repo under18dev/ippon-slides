@@ -122,7 +122,8 @@ async function build(input, opts) {
     for (const { format, path } of outputs(input, opts)) {
         mkdirSync(dirname(path), { recursive: true });
         if (format === 'html') {
-            const ogImage = `${basename(input, extname(input))}.png`; // ippon ogp が書き出す画像
+            // ippon ogp が書き出す画像。URL として解決するので、# や ? を含む名前でも壊れないようエンコードする
+            const ogImage = encodeURIComponent(`${basename(input, extname(input))}.png`);
             const { html, count, missing } = render(md, { baseDir, outDir: dirname(path), css, http, inline: opts.inline, ogImage });
             writeFileSync(path, html);
             console.log(`${time()} ✓ ${count} slides → ${path}`);

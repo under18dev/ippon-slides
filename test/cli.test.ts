@@ -134,6 +134,14 @@ test('OGP: frontmatter の url: があれば og:image を絶対 URL で出す', 
   const html2 = readFileSync(join(dir, 'og2.html'), 'utf8')
   assert.match(html2, /<meta property="og:title" content="T">/)
   assert.doesNotMatch(html2, /og:image|twitter:card/)
+
+  // # を含む入力名でも画像の URL が壊れない。url: が空でも image: の絶対 URL は出す
+  writeFileSync(join(dir, 'talk#1.md'), '---\nurl: https://e.x/d/\n---\n\n# a\n')
+  run('talk#1.md', '-o', 'og3.html')
+  assert.match(readFileSync(join(dir, 'og3.html'), 'utf8'), /<meta property="og:image" content="https:\/\/e.x\/d\/talk%231.png">/)
+  writeFileSync(join(dir, 'og4.md'), '---\nurl:\nimage: https://cdn.e.x/c.png\n---\n\n# a\n')
+  run('og4.md', '-o', 'og4.html')
+  assert.match(readFileSync(join(dir, 'og4.html'), 'utf8'), /<meta property="og:image" content="https:\/\/cdn.e.x\/c.png">/)
 })
 
 test('ogp', { skip: !findBrowser() && 'Chrome / Chromium / Edge がない' }, () => {

@@ -104,7 +104,8 @@ function ogp(meta: Record<string, string>, ogImage?: string): string {
   const image = meta.image || ogImage
   if (image) {
     try {
-      tags.push(['property', 'og:image', new URL(image, meta.url).href])
+      // url: が空なら無いものとして扱う（空の基準 URL を渡すと、image: が絶対 URL でも new URL が失敗する）
+      tags.push(['property', 'og:image', new URL(image, meta.url || undefined).href])
       tags.push(['name', 'twitter:card', 'summary_large_image'])
     } catch {} // url: が無く image も相対パスなら出さない（相対 URL の og:image は SNS が読まない）
   }
