@@ -253,7 +253,7 @@ p.sub {
 }
 
 /* ---------- feature grid (flat, hairline, no icons) ---------- */
-/* 8 features → 4×2 on desktop, 2×4 on tablet, 1 column on phones (no orphan cells) */
+/* 12 features → 4×3 on desktop, 2×6 on tablet, 1 column on phones (no orphan cells) */
 .grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
