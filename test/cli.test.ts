@@ -119,3 +119,39 @@ test('build --pdf', { skip: !findBrowser() && 'Chrome / Chromium / Edge がな�
   assert.equal(pdf.subarray(0, 5).toString(), '%PDF-')
   assert.equal(pdf.toString('latin1').match(/\/Type\s*\/Page[^s]/g)?.length, 9)
 })
+
+test('OGP: frontmatter の url: があれば og:image を絶対 URL で出す', () => {
+  writeFileSync(join(dir, 'og.md'), '---\ntitle: T & t\ndescription: D\nurl: https://e.x/talk/\n---\n\n# a\n')
+  run('og.md', '-o', 'og.html')
+  const html = readFileSync(join(dir, 'og.html'), 'utf8')
+  assert.match(html, /<meta property="og:title" content="T &amp; t">/)
+  assert.match(html, /<meta property="og:description" content="D">/)
+  assert.match(html, /<meta property="og:url" content="https:\/\/e.x\/talk\/">/)
+  assert.match(html, /<meta property="og:image" content="https:\/\/e.x\/talk\/og.png">/)
+  assert.match(html, /<meta name="twitter:card" content="summary_large_image">/)
+
+  // image: で差し替えられる。url: が無ければ相対パスの og:image は出さない
+  writeFileSync(join(dir, 'og2.md'), '---\ntitle: T\nimage: cover.png\n---\n\n# a\n')
+  run('og2.md', '-o', 'og2.html')
+  const html2 = readFileSync(join(dir, 'og2.html'), 'utf8')
+  assert.match(html2, /<meta property="og:title" content="T">/)
+  assert.doesNotMatch(html2, /og:image|twitter:card/)
+
+  // # を含む入力名でも画像の URL が壊れない。url: が空でも image: の絶対 URL は出す
+  writeFileSync(join(dir, 'talk#1.md'), '---\nurl: https://e.x/d/\n---\n\n# a\n')
+  run('talk#1.md', '-o', 'og3.html')
+  assert.match(readFileSync(join(dir, 'og3.html'), 'utf8'), /<meta property="og:image" content="https:\/\/e.x\/d\/talk%231.png">/)
+  writeFileSync(join(dir, 'og4.md'), '---\nurl:\nimage: https://cdn.e.x/c.png\n---\n\n# a\n')
+  run('og4.md', '-o', 'og4.html')
+  assert.match(readFileSync(join(dir, 'og4.html'), 'utf8'), /<meta property="og:image" content="https:\/\/cdn.e.x\/c.png">/)
+})
+
+test('ogp', { skip: !findBrowser() && 'Chrome / Chromium / Edge がない' }, () => {
+  const out = run('ogp', 'slide.md', '-o', 'dist/')
+  assert.match(out, /✓ 表紙 → .*dist\/slide\.png（1200×630）/)
+  const png = readFileSync(join(dir, 'dist/slide.png'))
+  assert.equal(png.subarray(1, 4).toString(), 'PNG')
+  // IHDR の幅と高さ
+  assert.equal(png.readUInt32BE(16), 1200)
+  assert.equal(png.readUInt32BE(20), 630)
+})

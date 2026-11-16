@@ -1,4 +1,4 @@
-// PDF 出力。ローカルの Chrome / Chromium / Edge をヘッドレスで起動して印刷する。
+// PDF / PNG（OGP 画像）出力。ローカルの Chrome / Chromium / Edge をヘッドレスで起動して印刷・撮影する。
 // 依存パッケージなし（puppeteer も使わない）。
 
 import { spawn } from 'node:child_process'
@@ -47,15 +47,19 @@ export interface PdfOptions {
   browserPath?: string
 }
 
-/**
- * @param html file:// URL の画像で組み立てた HTML
- * @param out  出力する PDF のパス
- */
-export async function toPdf(html: string, out: string, { browserPath }: PdfOptions = {}): Promise<void> {
+export interface PngOptions extends PdfOptions {
+  /** 画像の幅（既定 1200。OGP の推奨サイズ） */
+  width?: number
+  /** 画像の高さ（既定 630） */
+  height?: number
+}
+
+/** HTML を一時ファイルに書き、ヘッドレスのブラウザに out を作らせる */
+async function headless(html: string, out: string, what: string, browserPath: string | undefined, extra: string[]): Promise<void> {
   const browser = findBrowser(browserPath)
   if (!browser) {
     throw new Error(
-      'PDF の出力には Chrome / Chromium / Edge が必要です。--browser-path か環境変数 CHROME_PATH で場所を指定してください。'
+      `${what} の出力には Chrome / Chromium / Edge が必要です。--browser-path か環境変数 CHROME_PATH で場所を指定してください。`
     )
   }
 
@@ -71,9 +75,8 @@ export async function toPdf(html: string, out: string, { browserPath }: PdfOptio
       '--no-first-run',
       '--no-default-browser-check',
       `--user-data-dir=${join(dir, 'profile')}`,
-      '--no-pdf-header-footer',
       '--virtual-time-budget=3000', // Web フォントの読み込みを待つ
-      `--print-to-pdf=${out}`,
+      ...extra,
       pathToFileURL(src).href,
     ]
     const stderr = await new Promise<string>((ok, ng) => {
@@ -84,9 +87,35 @@ export async function toPdf(html: string, out: string, { browserPath }: PdfOptio
       p.on('close', () => ok(err))
     })
     if (!existsSync(out) || statSync(out).size === 0) {
-      throw new Error(`PDF の出力に失敗しました（${browser}）\n${stderr.trim()}`)
+      throw new Error(`${what} の出力に失敗しました（${browser}）\n${stderr.trim()}`)
     }
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
+}
+
+/**
+ * @param html file:// URL の画像で組み立てた HTML
+ * @param out  出力する PDF のパス
+ */
+export async function toPdf(html: string, out: string, { browserPath }: PdfOptions = {}): Promise<void> {
+  await headless(html, out, 'PDF', browserPath, ['--no-pdf-header-footer', `--print-to-pdf=${out}`])
+}
+
+// 表紙だけを、ナビの UI を隠しフェードインも止めて撮る
+const COVER_CSS =
+  '<style>#hint,#counter,#timer,#progress,.reading-toggle{display:none!important}.slide{animation:none!important}</style>'
+
+/**
+ * 表紙（1 枚目）を PNG で書き出す（OGP 画像用）
+ * @param html file:// URL の画像で組み立てた HTML
+ * @param out  出力する PNG のパス
+ */
+export async function toPng(html: string, out: string, { browserPath, width = 1200, height = 630 }: PngOptions = {}): Promise<void> {
+  await headless(html.replace('</head>', `${COVER_CSS}\n</head>`), out, 'PNG', browserPath, [
+    '--hide-scrollbars',
+    '--force-device-scale-factor=1',
+    `--window-size=${width},${height}`,
+    `--screenshot=${out}`,
+  ])
 }

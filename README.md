@@ -37,6 +37,7 @@
 npx ippon-slides init                    # サンプルの slide.md を作る
 npx ippon-slides build slide.md --html -w # 保存するたびに slide.html を作り直す
 npx ippon-slides build slide.md --pdf     # slide.pdf
+npx ippon-slides ogp slide.md             # 表紙を OGP 画像（slide.png）に
 ```
 
 グローバルに入れると `ippon` コマンドとして使えます。
@@ -201,6 +202,22 @@ ippon serve slide.md
 
 > Wi-Fi の「クライアント分離（AP isolation）」が有効な環境では、スマホから PC に
 > 接続できないことがあります。その場合はテザリングや別の Wi-Fi をお試しください。
+
+## SNS で共有する（OGP）
+
+```sh
+ippon ogp slide.md   # 表紙を 1200×630 の slide.png にする
+```
+
+frontmatter に公開先の `url:` を書いておくと、`build` した HTML に `og:image` が入り、
+X やブログに URL を貼ったときに表紙が出ます（[詳しく](docs/cli.md#ogp)）。
+
+```md
+---
+title: 発表タイトル
+url: https://slides.example.com/talk/
+---
+```
 
 ## 見た目を変える
 

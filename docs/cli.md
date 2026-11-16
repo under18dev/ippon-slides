@@ -5,6 +5,7 @@ ippon build <input.md> [options]   スライドをビルドする
 ippon <input.md> [options]         build の省略形
 ippon serve <input.md> [options]   ローカルで配信し、スマホをリモコンにする
 ippon init [file]                  サンプルの Markdown を作る（既定: slide.md）
+ippon ogp <input.md> [options]     表紙を OGP 画像（1200×630 の PNG）にする
 ippon current [input.md]           serve 中のデッキで表示中のスライドと選択中の文字列を JSON で出す
 ippon skills init [dir]            current を使うエージェント用スキルを .claude/skills と .agents/skills に置く
 ippon --help / --version
@@ -45,6 +46,34 @@ ippon build slide.md --inline
 | `--css <file>` | 追加の CSS |
 
 詳しくは [スマホをリモコンにする](serve.md) を参照してください。
+
+## `ogp`
+
+表紙（1 枚目）を、SNS で共有したときに出る OGP 画像（1200×630 の PNG）にします。
+PDF と同じくローカルの Chrome / Chromium / Edge を使います。
+
+```sh
+ippon ogp slide.md            # slide.png
+ippon ogp slide.md -o dist/   # dist/slide.png
+```
+
+| オプション | 意味 |
+|---|---|
+| `-o, --output <path>` | 出力先（既定: `<input>.png`）。ディレクトリを指定するとその中に作る |
+| `--css <file>` | 追加の CSS |
+| `--browser-path <path>` | 使うブラウザ（環境変数 `CHROME_PATH` でも可） |
+
+X などは `og:image` に絶対 URL が必要なので、frontmatter に公開先の `url:` を書いておきます。
+`build` した HTML の `og:image` に `<url><input>.png` が入ります。HTML と同じ場所に画像も置いてください。
+
+```md
+---
+title: 発表タイトル
+url: https://slides.example.com/talk/
+---
+```
+
+`-o` で別の名前にしたときは、frontmatter の `image:` でその名前を指定します。
 
 ## `init`
 
