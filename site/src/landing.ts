@@ -11,10 +11,10 @@ export interface Copy {
   title: string
   description: string
   nav: { docs: string }
-  hero: { title: string[]; lede: string; start: string; star: string; copy: string; copied: string }
+  hero: { title: string[]; lede: string; start: string; copy: string; copied: string }
   demo: { title: string; sub: string; source: string; deck: string; prev: string; next: string }
   why: { title: string; body: string; quote: string; note: string }
-  features: { title: string; sub: string; items: [string, string][] }
+  features: { title: string; items: [string, string][] }
   quick: {
     title: string
     sub: string
@@ -22,7 +22,6 @@ export interface Copy {
     more: string
   }
   faq: { title: string; items: [string, string][] }
-  cta: { title: string; button: string }
   footer: { tagline: string; docs: string }
 }
 
@@ -40,9 +39,8 @@ export const COPY: Record<Lang, Copy> = {
     nav: { docs: 'Docs' },
     hero: {
       title: ['One message', 'per slide.'],
-      lede: 'ippon turns Markdown into a deck where every slide says one thing. One self-contained HTML file, a 16:9 PDF, zero dependencies. Yours, forever.',
+      lede: 'ippon turns Markdown into a deck where every slide says one thing. One self-contained HTML file, a 16:9 PDF, zero dependencies.',
       start: 'Get started',
-      star: 'Star on GitHub',
       copy: 'Copy',
       copied: 'Copied',
     },
@@ -61,8 +59,7 @@ export const COPY: Record<Lang, Copy> = {
       note: 'No cloud. No special viewer. No runtime dependencies. Your deck is a plain HTML file that opens anywhere, years from now.',
     },
     features: {
-      title: 'Everything, in one file',
-      sub: 'A focused feature set — each one earns its place.',
+      title: 'What it does',
       items: [
         ['Single self-contained HTML', 'CSS and JS are inlined. One file you can email, commit, or open offline. Add <code>--inline</code> to embed the images too.'],
         ['Zero runtime dependencies', 'Only TypeScript is used to build it. PDF export drives a local Chrome directly instead of bundling a browser.'],
@@ -105,7 +102,6 @@ export const COPY: Record<Lang, Copy> = {
         ['Is it free and open source?', 'Yes — MIT licensed, published on npm, with zero runtime dependencies.'],
       ],
     },
-    cta: { title: 'Say one thing. Start now.', button: 'Read the docs' },
     footer: { tagline: 'One message per slide. MIT licensed.', docs: 'Docs' },
   },
   ja: {
@@ -118,9 +114,8 @@ export const COPY: Record<Lang, Copy> = {
     nav: { docs: 'ドキュメント' },
     hero: {
       title: ['1 枚に、', '1 メッセージ。'],
-      lede: 'ippon は Markdown を「1 枚 1 メッセージ」のスライドに変換します。CSS/JS 全部入りの単一 HTML、そして 16:9 の PDF。ゼロ依存。ずっとあなたのもの。',
+      lede: 'ippon は Markdown を「1 枚 1 メッセージ」のスライドに変換します。CSS/JS 全部入りの単一 HTML、そして 16:9 の PDF。ゼロ依存。',
       start: 'はじめる',
-      star: 'GitHub でスター',
       copy: 'コピー',
       copied: 'コピー済み',
     },
@@ -139,8 +134,7 @@ export const COPY: Record<Lang, Copy> = {
       note: 'クラウドなし。専用ビューアなし。ランタイム依存なし。デッキはただの HTML ファイルで、どの端末でも、何年後でも開けます。',
     },
     features: {
-      title: '全部、1 ファイルに',
-      sub: '厳選した機能だけ。ひとつひとつが居場所を持っています。',
+      title: 'できること',
       items: [
         ['単一の自己完結 HTML', 'CSS も JS もインライン。メールでも Git でもオフラインでも開ける 1 ファイル。<code>--inline</code> なら画像まで埋め込めます。'],
         ['ランタイム依存ゼロ', 'ビルドに使うのは TypeScript だけ。PDF 出力はブラウザを同梱せずローカルの Chrome を直接駆動。'],
@@ -172,7 +166,7 @@ export const COPY: Record<Lang, Copy> = {
       more: 'ガイドを読む',
     },
     faq: {
-      title: 'FAQ',
+      title: 'よくある質問',
       items: [
         ['Markdown からスライドを作るには？', '<code>npx ippon-slides init</code> でサンプル <code>slide.md</code> を作り、<code>npx ippon-slides build slide.md</code> で単一の <code>slide.html</code> を出力します。<code>---</code> で区切り、1 枚に 1 メッセージ。'],
         ['出力はオフラインで動く？', 'はい。CSS/JS 全部入りの 1 ファイルなので、ネットワークもサーバーも依存もなしで開けます。<code>--inline</code> なら画像も埋め込めます。'],
@@ -183,7 +177,6 @@ export const COPY: Record<Lang, Copy> = {
         ['無料でオープンソース？', 'はい。MIT ライセンスで npm に公開、ランタイム依存はゼロです。'],
       ],
     },
-    cta: { title: '言いたいことを、1 つだけ。', button: 'ドキュメントを読む' },
     footer: { tagline: '1 枚 1 メッセージ。MIT ライセンス。', docs: 'ドキュメント' },
   },
 }

@@ -116,7 +116,6 @@ const ld = {
           <p class="lede">{t.hero.lede}</p>
           <div class="cta">
             <a class="btn primary" href={docsPath(lang, 'getting-started')}>{t.hero.start}</a>
-            <a class="btn" href="https://github.com/under18dev/ippon-slides">{t.hero.star}</a>
             <span class="copybar">
               <code>npx ippon-slides init</code>
               <button type="button" data-copy="npx ippon-slides init" data-done={t.hero.copied}>{t.hero.copy}</button>
@@ -177,17 +176,16 @@ const ld = {
       <section id="features">
         <div class="wrap">
           <h2>{t.features.title}</h2>
-          <p class="sub">{t.features.sub}</p>
-          <div class="grid">
+          <dl class="feats">
             {
               t.features.items.map(([h, p]) => (
-                <div class="item">
-                  <h3>{h}</h3>
-                  <p set:html={p} />
+                <div>
+                  <dt>{h}</dt>
+                  <dd set:html={p} />
                 </div>
               ))
             }
-          </div>
+          </dl>
         </div>
       </section>
 
@@ -197,12 +195,9 @@ const ld = {
           <p class="sub" set:html={t.quick.sub} />
           <div class="cols">
             {
-              t.quick.steps.map((s, i) => (
+              t.quick.steps.map((s) => (
                 <div class="step">
-                  <h3>
-                    <span class="n">{String(i + 1).padStart(2, '0')}</span>
-                    {s.title}
-                  </h3>
+                  <h3>{s.title}</h3>
                   <pre set:html={esc(s.code).replace(/^(#.*)$/gm, '<span class="c">$1</span>')} />
                 </div>
               ))
@@ -215,21 +210,16 @@ const ld = {
       <section id="faq" class="faq">
         <div class="wrap">
           <h2>{t.faq.title}</h2>
-          {
-            t.faq.items.map(([q, a], i) => (
-              <details open={i === 0}>
-                <summary>{q}</summary>
-                <p set:html={a} />
-              </details>
-            ))
-          }
-        </div>
-      </section>
-
-      <section class="closing">
-        <div class="wrap">
-          <h2>{t.cta.title}</h2>
-          <a class="btn primary" href={docsPath(lang)}>{t.cta.button}</a>
+          <dl>
+            {
+              t.faq.items.map(([q, a]) => (
+                <div>
+                  <dt>{q}</dt>
+                  <dd set:html={a} />
+                </div>
+              ))
+            }
+          </dl>
         </div>
       </section>
     </main>

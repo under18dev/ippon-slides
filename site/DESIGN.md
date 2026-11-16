@@ -55,8 +55,11 @@ or filled "card" surfaces.
 - Section rhythm: `clamp(56px, 9vw, 104px)` vertical padding; sections separated by a single
   hairline top border.
 - Content max width 1040px on the landing page.
-- The feature grid has 12 items → 4×3 / 2×6 / 1×12, so there are never orphan cells. Keep the count
-  a multiple of 4 (and 2).
+- Lay content out like a document, not a template: features are a two-column list of name +
+  one line (hairline above each, no boxes), the FAQ is plain questions and answers (all visible,
+  no accordion), and the page ends with the footer (no closing CTA band repeating a headline).
+- Corners are square (`border-radius` 2px at most; no pills). The nav is a solid black bar with a
+  hairline, not a translucent blurred one. These are the tells of a generated landing page.
 - Two-column blocks collapse to one column under 760–860px.
 
 ## Motion & accessibility
@@ -68,5 +71,7 @@ or filled "card" surfaces.
 ## Copy
 
 - Sentence case, active voice, plain verbs, no filler or hype.
+- No stock marketing lines ("Yours, forever.", "each one earns its place", "Start now."). Say what
+  the tool does; the philosophy lines come from the README.
 - Be concrete and honest (e.g. name the real limitation: "same Wi-Fi", "subject to CORS").
 - English and Japanese say the same things; update both.
