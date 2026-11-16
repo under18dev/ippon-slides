@@ -23,3 +23,19 @@ jobs:
       - run: npm run typecheck
       # PDF のテストは Chrome が無い環境では自動でスキップされる
       - run: npm test
+
+  # サイト（site/、Astro）がビルドできるか。docs/ を読むので、ドキュメントのリンク切れなどもここで止まる
+  site:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            site/package-lock.json
+      - run: npm ci && npm run build
+      - run: npm ci && npm run build
+        working-directory: site

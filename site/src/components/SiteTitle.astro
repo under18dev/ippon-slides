@@ -1,0 +1,22 @@
+---
+// ブランド表記「ippon.」（オレンジのドット）。トップページへ戻る
+const { siteTitleHref } = Astro.locals.starlightRoute
+---
+
+<a href={siteTitleHref} class="site-title" translate="no">ippon<span class="dot">.</span></a>
+
+<style>
+  .site-title {
+    display: flex;
+    align-items: center;
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--sl-color-white);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .dot {
+    color: var(--sl-color-accent);
+  }
+</style>

@@ -7,7 +7,7 @@
 - `--pdf` で 16:9 の **PDF** も出せる
 - 依存パッケージなし
 
-📚 詳しいドキュメントは [`docs/`](docs/README.md) にあります（[記法](docs/syntax.md) ・ [`::http::`](docs/http.md) ・ [`ippon serve`](docs/serve.md) ・ [発表者ビュー](docs/presenter.md) ・ [見た目](docs/theming.md) ・ [CLI](docs/cli.md)）。
+📚 詳しいドキュメントは **[ippon.under18.dev](https://ippon.under18.dev/ja/docs/)** と [`docs/`](docs/README.md) にあります（[記法](docs/syntax.md) ・ [`::http::`](docs/http.md) ・ [`ippon serve`](docs/serve.md) ・ [発表者ビュー](docs/presenter.md) ・ [見た目](docs/theming.md) ・ [CLI](docs/cli.md)）。
 
 ## 思想 — なぜ「ippon」なのか
 

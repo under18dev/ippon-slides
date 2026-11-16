@@ -1,0 +1,15 @@
+{
+  "name": "ippon-slides-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "demo": "node scripts/demo.mjs",
+    "dev": "npm run demo && astro dev",
+    "build": "npm run demo && astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.43.1",
+    "astro": "^7.4.12"
+  }
+}

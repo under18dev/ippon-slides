@@ -1,0 +1,386 @@
+---
+// トップページのヒーロー。Starlight の Hero を置き換えている（frontmatter に hero があるページ = トップだけで使われる）。
+// 左に名前・説明・ボタン・インストールのコマンド、右にエディタ（slide.md）と、それを ippon で実際にビルドしたデッキ
+// （site/demo/<lang>.md → public/demo/<lang>/）を重ねて置く。iframe の src は index.html まで書く（astro dev は public/ の
+// ディレクトリの index.html を返さず 404 ページになる）。エディタは iframe の #N を見て表示中のスライドの Markdown を出す。
+import { slideLines } from '../../../dist/markdown.js'
+import { COPY, docsPath, langOf } from '../landing'
+
+const lang = langOf(Astro.locals.starlightRoute.locale)
+const t = COPY[lang]
+
+// デモの Markdown をスライドごとに切り出す（ippon と同じ区切り方。frontmatter は除く）
+const sources = import.meta.glob<string>('../../demo/*.md', { query: '?raw', import: 'default', eager: true })
+const md = sources[`../../demo/${lang}.md`]!
+const lines = md.split('\n')
+const slides = (slideLines(md) as [number, number][]).map(([a, b]) => lines.slice(a - 1, b).join('\n').trim())
+
+const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+// Markdown を少しだけ色分けする（指示・見出し・強調・コード）
+const mdHtml = (src: string) => {
+  let inFence = false
+  return src
+    .split('\n')
+    .map((line) => {
+      const e = esc(line)
+      if (/^```/.test(line)) {
+        inFence = !inFence
+        return `<span class="m-fence">${e}</span>`
+      }
+      if (inFence) return `<span class="m-code">${e}</span>`
+      if (/^::.*::\s*$/.test(line)) return `<span class="m-dir">${e}</span>`
+      if (/^#{1,3} /.test(line)) return `<span class="m-h">${e}</span>`
+      if (/^-# /.test(line)) return `<span class="m-note">${e}</span>`
+      return e.replace(/\*\*(.+?)\*\*/g, '<span class="m-b">**$1**</span>').replace(/`([^`]+)`/g, '<span class="m-c">`$1`</span>')
+    })
+    .join('\n')
+}
+---
+
+<div class="home-hero not-content">
+  <div class="intro">
+    <h1>
+      <span class="name">ippon</span>
+      <span class="text">{t.hero.title}</span>
+    </h1>
+    <p class="tagline">{t.hero.lede}</p>
+    <div class="actions">
+      <a class="btn brand" href={docsPath(lang, 'getting-started')}>{t.hero.start}</a>
+      <a class="btn alt" href="https://github.com/under18dev/ippon-slides">{t.hero.github}</a>
+    </div>
+    <div class="install">
+      <span class="prompt" aria-hidden="true">$</span>
+      <code>npx ippon-slides init</code>
+      <button type="button" data-copy="npx ippon-slides init" data-done={t.hero.copied} aria-label={t.hero.copy} title={t.hero.copy}>
+        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"
+          ><rect x="9" y="9" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="2"></rect><path
+            d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"></path></svg
+        >
+      </button>
+    </div>
+  </div>
+
+  <div class="visual">
+    <div class="win editor">
+      <div class="bar">
+        <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="file">{t.demo.source}</span>
+        <span class="ctrl">
+          <button type="button" data-step="-1" aria-label={t.demo.prev}>‹</button>
+          <span class="count"><span data-cur>1</span> / {slides.length}</span>
+          <button type="button" data-step="1" aria-label={t.demo.next}>›</button>
+        </span>
+      </div>
+      <div class="src">
+        {slides.map((s, i) => <pre data-slide={i + 1} hidden={i !== 0} set:html={mdHtml(s)} />)}
+      </div>
+    </div>
+    <div class="win deck">
+      <div class="frame">
+        <iframe id="demo-frame" src={`/demo/${lang}/index.html`} title={t.demo.deck} loading="lazy"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // インストールのコマンドをコピー
+  document.querySelectorAll<HTMLButtonElement>('.home-hero button[data-copy]').forEach((b) => {
+    b.addEventListener('click', () => {
+      navigator.clipboard?.writeText(b.dataset.copy || '')
+      const label = b.title
+      b.title = b.dataset.done || label
+      b.classList.add('done')
+      setTimeout(() => {
+        b.title = label
+        b.classList.remove('done')
+      }, 1200)
+    })
+  })
+
+  // デモ：iframe のデッキ（同一オリジン）の #N を読み書きして、エディタの Markdown と連動させる
+  const frame = document.getElementById('demo-frame') as HTMLIFrameElement | null
+  const chunks = Array.from(document.querySelectorAll<HTMLElement>('.home-hero .src [data-slide]'))
+  const cur = document.querySelector<HTMLElement>('.home-hero [data-cur]')
+  if (frame && cur) {
+    const total = chunks.length
+    let shown = 1
+    const current = () => {
+      try {
+        return Math.min(total, Math.max(1, parseInt(frame.contentWindow!.location.hash.slice(1), 10) || 1))
+      } catch {
+        return 1
+      }
+    }
+    const go = (n: number) => {
+      const loc = frame.contentWindow?.location
+      if (!loc) return
+      // hash への代入は親ページの履歴に積まれて「戻る」がスライドをたどってしまうので、置き換えで動かす
+      // （相対の '#N' は親ページの URL で解決されるので、iframe の URL から組み立てる）
+      loc.replace(loc.href.split('#')[0] + '#' + Math.min(total, Math.max(1, n)))
+    }
+    const sync = () => {
+      const n = current()
+      if (n === shown) return
+      shown = n
+      cur.textContent = String(n)
+      chunks.forEach((c, i) => (c.hidden = i !== n - 1))
+    }
+    document.querySelectorAll<HTMLButtonElement>('.home-hero [data-step]').forEach((b) =>
+      b.addEventListener('click', () => go(current() + Number(b.dataset.step)))
+    )
+    frame.addEventListener('load', sync)
+    // 枠が 960px より狭いときは、960px で描いたデッキを縮めて見せる
+    const box = frame.parentElement!
+    const fit = () => {
+      const w = box.clientWidth
+      const base = Math.max(w, 960)
+      box.style.setProperty('--w', base + 'px')
+      box.style.setProperty('--k', String(w / base))
+    }
+    new ResizeObserver(fit).observe(box)
+    fit()
+    setInterval(sync, 200)
+  }
+</script>
+
+<style>
+  .home-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: center;
+    padding-block: clamp(1.5rem, 6vw, 4.5rem) clamp(2rem, 5vw, 3.5rem);
+  }
+  @media (max-width: 60rem) {
+    .home-hero {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  h1 {
+    margin: 0;
+    line-height: 1.2;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .name {
+    display: block;
+    font-size: clamp(2.6rem, 5.5vw, 3.75rem);
+    line-height: 1.1;
+    color: var(--sl-color-accent);
+  }
+  .text {
+    display: block;
+    margin-top: 0.3rem;
+    font-size: clamp(1.75rem, 3.2vw, 2.4rem);
+    color: var(--sl-color-white);
+    text-wrap: balance;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  .tagline {
+    margin: 1rem 0 0;
+    max-width: 30em;
+    font-size: clamp(1.1rem, 1.8vw, 1.3rem);
+    line-height: 1.5;
+    color: var(--sl-color-gray-2);
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.75rem;
+  }
+  .btn {
+    display: inline-block;
+    padding: 0.55rem 1.2rem;
+    border-radius: 999px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition:
+      background-color 0.15s,
+      color 0.15s;
+  }
+  .btn.brand {
+    background: var(--sl-color-accent);
+    color: #000;
+  }
+  .btn.brand:hover {
+    background: var(--sl-color-accent-high);
+  }
+  .btn.alt {
+    background: var(--sl-color-gray-5);
+    color: var(--sl-color-white);
+  }
+  .btn.alt:hover {
+    background: var(--sl-color-gray-4);
+  }
+
+  .install {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 1.25rem;
+    padding: 0.35rem 0.5rem 0.35rem 0.9rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 999px;
+    background: var(--sl-color-gray-6);
+    font-family: var(--sl-font-mono);
+    font-size: 0.85rem;
+  }
+  .install .prompt {
+    color: var(--sl-color-gray-3);
+  }
+  .install code {
+    color: var(--sl-color-white);
+    background: none;
+    padding: 0;
+  }
+  .install button {
+    display: grid;
+    place-items: center;
+    width: 1.8rem;
+    height: 1.8rem;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--sl-color-gray-3);
+    cursor: pointer;
+  }
+  .install button:hover,
+  .install button.done {
+    color: var(--sl-color-accent);
+  }
+
+  /* 右：エディタとデッキを重ねる（sli.dev のように） */
+  .visual {
+    position: relative;
+    padding-bottom: 6%;
+  }
+  .win {
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  }
+  .editor {
+    width: 82%;
+    background: var(--sl-color-gray-6);
+  }
+  .deck {
+    position: relative;
+    width: 78%;
+    margin: -22% 0 0 auto;
+    background: #000;
+  }
+  @media (max-width: 30rem) {
+    .editor,
+    .deck {
+      width: 100%;
+    }
+    .deck {
+      margin-top: 0.75rem;
+    }
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.55rem 0.8rem;
+    font-family: var(--sl-font-mono);
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-3);
+  }
+  .dots {
+    display: inline-flex;
+    gap: 6px;
+  }
+  .dots i {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ff5f57;
+  }
+  .dots i:nth-child(2) {
+    background: #febc2e;
+  }
+  .dots i:nth-child(3) {
+    background: #28c840;
+  }
+  .file {
+    flex: 1;
+    text-align: center;
+  }
+  .ctrl {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .ctrl button {
+    border: 0;
+    background: transparent;
+    color: var(--sl-color-gray-2);
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 0 0.3rem;
+    cursor: pointer;
+  }
+  .ctrl button:hover {
+    color: var(--sl-color-accent);
+  }
+  .src {
+    height: 13rem;
+    overflow: auto;
+  }
+  .src pre {
+    margin: 0;
+    padding: 0.6rem 1.1rem 1.2rem;
+    font-family: var(--sl-font-mono);
+    font-size: 0.82rem;
+    line-height: 1.65;
+    color: var(--sl-color-gray-2);
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: none;
+    border: 0;
+  }
+  .src :global(.m-dir) {
+    color: var(--sl-color-accent);
+  }
+  .src :global(.m-h),
+  .src :global(.m-b) {
+    color: var(--sl-color-white);
+    font-weight: 700;
+  }
+  .src :global(.m-c),
+  .src :global(.m-code),
+  .src :global(.m-fence) {
+    color: var(--sl-color-gray-3);
+  }
+  .src :global(.m-note) {
+    color: var(--sl-color-gray-4);
+  }
+
+  .frame {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+  }
+  /* デッキは最低 960px 幅で描いて枠に縮める（狭い画面でも本物と同じ見え方。幅は script が --w / --k で渡す） */
+  .frame iframe {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: var(--w, 100%);
+    aspect-ratio: 16 / 9;
+    border: 0;
+    transform: scale(var(--k, 1));
+    transform-origin: 0 0;
+  }
+</style>
