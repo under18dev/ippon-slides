@@ -23,6 +23,21 @@ node bin/ippon.js build slide.md --html   # run the CLI (needs a prior build)
 - `ci.yml` runs `typecheck` + `test` on push to `main` and on every PR, across Node 22 and 24.
 - `release.yml` fires on pushing a `v*` tag. It **verifies the tag matches `package.json` version**, then typechecks, tests, `npm publish`es, and creates a GitHub Release. So a release is: bump `package.json`, commit, tag `vX.Y.Z`, push the tag. npm publish uses **Trusted Publishing (OIDC)** — no token, but requires npm 11.5.1+ (the workflow self-upgrades npm).
 
+## Site (`site/`)
+
+ippon.under18.dev (landing page + docs) is an **Astro + Starlight** static site in `site/`, with its own `package.json` / lockfile. It is not part of the npm package and does not affect the zero-dependency rule. `site/DESIGN.md` has the design rules.
+
+```sh
+npm run build                      # the site's demo needs the repo's dist/ and assets/deck.js
+cd site && npm ci && npm run build # → site/dist/  (npm run dev for a dev server)
+```
+
+- **Docs content is the repo's `docs/` (Japanese) and `docs/en/` (English)**, read by the custom loader in `site/src/content.config.ts`. The files have no frontmatter: the first `# H1` becomes the page title, and relative `foo.md#anchor` links are rewritten to `/docs/foo/` (`/ja/docs/foo/`). English is the root locale (`/docs/`), Japanese is `/ja/docs/`. The sidebar is in `site/astro.config.mjs`.
+- **Keep `docs/` and `docs/en/` in sync**: same files, same heading structure. When you change syntax or CLI options, update both (plus README and `HELP`).
+- The landing page (`site/src/components/Landing.astro`, copy in `site/src/landing.ts`) embeds a real deck: `site/scripts/demo.mjs` builds `site/demo/<lang>.md` with `bin/ippon.js` into `site/public/demo/<lang>/`, and the page shows each slide's Markdown (split with `slideLines()` from `dist/markdown.js`) next to the iframe, synced through the iframe's `#N` hash.
+- If you reinstall site dependencies, make sure `site/package-lock.json` resolves to `https://registry.npmjs.org/` (a local registry proxy would break CI).
+- `pages.yml` builds and deploys it on pushes to main that touch `site/`, `docs/`, `src/` or `assets/`; `ci.yml` builds it on every PR.
+
 ## TypeScript setup
 
 - Relative imports use the **`.ts` extension** (`import { esc } from './highlight.ts'`). `rewriteRelativeImportExtensions` turns them into `.js` in `dist/`. Code must stay type-strip compatible because `erasableSyntaxOnly` is on: no enums, no parameter properties, no namespaces.
