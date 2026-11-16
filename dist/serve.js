@@ -8,7 +8,7 @@
 //   - それ以外              Markdown のあるディレクトリから静的配信（画像など）
 //
 // 通信は SSE + fetch POST の小さな pub/sub だけ。WebSocket も外部依存も使わない。
-// Markdown / --css を書き換えると、開いているデッキとリモコンを再読み込みさせる。
+// Markdown / --css を書き換えると reload を配信する（デッキは変わったスライドだけ差し替え、リモコンは読み込み直す）。
 import { randomUUID } from 'node:crypto';
 import { readFileSync, statSync, watch } from 'node:fs';
 import { createServer } from 'node:http';
