@@ -303,8 +303,9 @@ export function parseBackground(line: string): BackgroundSpec | null {
   for (const tok of m[1]!.trim().split(/[ \t]+/)) {
     const kv = tok.match(/^(path|brightness|opacity)=(.*)$/)
     if (!kv) {
-      // `::background img/bg.jpg::` のようにパスを裸で書いた場合も許す
-      if (!tok.includes('=')) spec.path = tok
+      // `::background img/bg.jpg::` のようにパスを裸で書いた場合も許す。
+      // `https://e.x/a.jpg?w=1280` のように = を含むパスもあるので、`名前=` で始まるもの（知らない指定）だけ飛ばす
+      if (!/^[a-z-]+=/i.test(tok)) spec.path = tok
       continue
     }
     const [, key, value] = kv as [string, 'path' | 'brightness' | 'opacity', string]
@@ -515,6 +516,15 @@ export function slide(src: string, http?: HttpMap): { section: string; note: str
   } else {
     html = blocks(body, http)
   }
+
+  // 背景画像はスライドの先頭に集める（どこに書いても、表紙の p:last-child などの構造セレクターを狂わせない）。
+  // 位置は CSS の position: absolute と --ratio で決まるので、DOM の場所は関係ない
+  const bgs: string[] = []
+  html = html.replace(/<img src="[^"]*" class="slide-bg[^"]*"[^>]*>/g, (img) => {
+    bgs.push(img)
+    return ''
+  })
+  html = bgs.join('') + html
 
   const section = `<section class="${classes.join(' ')}"${style ? ` style="${style}"` : ''}>${html}</section>`
   return { section, note }

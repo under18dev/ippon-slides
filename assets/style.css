@@ -70,7 +70,8 @@ body {
     transform: none;
   }
 }
-.slide > :first-child {
+.slide > :first-child,
+.slide > .slide-bg + :not(.slide-bg) {
   margin-top: 0;
 }
 
