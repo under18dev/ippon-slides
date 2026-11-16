@@ -55,6 +55,7 @@ ippon build slide.md --html --pdf -o dist/
 | `-o, --output <path>` | 出力先。ディレクトリを指定するとその中に `<input>.html` / `.pdf` を作る。`--html --pdf` を両方指定したときは拡張子だけ差し替える |
 | `-w, --watch` | Markdown と `--css` の変更を監視して再ビルドする |
 | `--css <file>` | 追加の CSS（色やフォントの上書きなど） |
+| `--inline` | 画像を HTML に埋め込む。HTML 1 ファイルを渡すだけで画像も出る |
 | `--no-fetch` | `::http::` のレスポンスをビルド時に取得しない |
 | `--browser-path <path>` | PDF に使うブラウザ。環境変数 `CHROME_PATH` でも指定できる |
 

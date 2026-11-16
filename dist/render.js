@@ -1,32 +1,74 @@
 // スライドの HTML を 1 ファイルに組み立てる（CSS / JS も全部埋め込む）
 import { readFileSync } from 'node:fs';
-import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { esc } from './highlight.js';
 import { parse } from './markdown.js';
 const assets = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets');
 const EXTERNAL = /^(?:[a-z][a-z0-9+.-]*:|\/\/|#|\/)/i;
+const unesc = (s) => s.replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+/** URL のパスをファイル名に戻す。%26 などの予約文字も戻す（decodeURI は戻さない）。壊れた % はそのまま */
+const decodePath = (s) => {
+    try {
+        return decodeURIComponent(s);
+    }
+    catch {
+        return s;
+    }
+};
+/** ファイルの相対パスを URL のパスにする（区切りの / 以外をちょうど 1 回だけエンコード） */
+const encodePath = (s) => s.split(sep).map(encodeURIComponent).join('/');
+/** --inline で data URI にする画像の MIME */
+const IMAGE_MIME = {
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.svg': 'image/svg+xml',
+    '.webp': 'image/webp',
+    '.avif': 'image/avif',
+    '.ico': 'image/x-icon',
+};
 /**
  * 相対パスの画像を、出力先から見たパスに書き換える。
+ *   - inline        → data URI（読めなかったものは missing に入れて下のどちらか）
  *   - outDir を渡す → 出力先からの相対パス（HTML 用）
  *   - outDir なし   → file:// の絶対 URL（PDF の一時ファイル用）
  */
-function rewriteImages(html, baseDir, outDir) {
-    return html.replace(/(<img src=")([^"]+)(")/g, (all, pre, src, post) => {
-        if (EXTERNAL.test(src) || isAbsolute(src))
+function rewriteImages(html, baseDir, outDir, inline, missing) {
+    return html.replace(/(<img src=")([^"]+)(")/g, (all, pre, attr, post) => {
+        if (EXTERNAL.test(attr) || isAbsolute(attr))
             return all;
-        const abs = resolve(baseDir, decodeURI(src));
-        const url = outDir ? encodeURI(relative(outDir, abs).split(sep).join('/')) : pathToFileURL(abs).href;
-        return pre + url + post;
+        // 属性値は esc() 済み。?v=1 や #id はファイルの場所に含めない
+        const src = unesc(attr);
+        const [, path, suffix] = src.match(/^([^?#]*)(.*)$/);
+        const abs = resolve(baseDir, decodePath(path));
+        if (inline) {
+            const mime = IMAGE_MIME[extname(abs).toLowerCase()];
+            try {
+                if (!mime)
+                    throw new Error();
+                // SVG の #id は data URI でも効くので残す
+                const hash = suffix.includes('#') ? suffix.slice(suffix.indexOf('#')) : '';
+                return pre + esc(`data:${mime};base64,${readFileSync(abs).toString('base64')}${hash}`) + post;
+            }
+            catch {
+                missing.push(src);
+            }
+        }
+        const url = outDir ? encodePath(relative(outDir, abs)) : pathToFileURL(abs).href;
+        return pre + esc(url + suffix) + post;
     });
 }
-export function render(md, { baseDir, outDir, css = '', http }) {
+export function render(md, { baseDir, outDir, css = '', http, inline = false }) {
     const { meta, sections, notes } = parse(md, http);
     const style = readFileSync(join(assets, 'style.css'), 'utf8') + (css ? `\n/* --css */\n${css}` : '');
     const script = readFileSync(join(assets, 'deck.js'), 'utf8');
-    const body = rewriteImages(sections.join('\n'), baseDir, outDir);
+    const missing = [];
+    const body = rewriteImages(sections.join('\n'), baseDir, outDir, inline, missing);
     // 発表者ノートは本番 DOM に入れず JSON で渡す（発表者ビューが読む）。</script> 対策で < をエスケープ
-    const notesJson = JSON.stringify(notes).replace(/</g, '\\u003c');
+    // ノートの画像も発表者ビューに出るので同じように書き換える
+    const notesJson = JSON.stringify(notes.map((n) => rewriteImages(n, baseDir, outDir, inline, missing))).replace(/</g, '\\u003c');
     const html = `<!doctype html>
 <html lang="${esc(meta.lang || 'ja')}">
 <head>
@@ -53,5 +95,5 @@ ${body}
 </body>
 </html>
 `;
-    return { html, count: sections.length };
+    return { html, count: sections.length, missing };
 }
