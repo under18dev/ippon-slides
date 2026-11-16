@@ -6,7 +6,7 @@
 //   ::note::                  発表者ノート（この行以降は本番に出ず発表者ビューだけに出る）
 //   ::qr url=... caption::    URL の QR コード（SVG。caption で下に URL も出す）
 //   -# 注釈                   小さい注釈
-//   ```hcl                    コード（hcl / console / sh / json / js / ts）
+//   ```hcl                    コード（hcl / console / sh / json / js / ts / diff / yaml / py / go / rust / html / css）
 //   !! 行                     コードの行を強調（行頭の "!! " は消える）
 import { esc, highlight } from './highlight.js';
 import { qrSvg } from './qr.js';
@@ -351,7 +351,8 @@ export function slide(src, http) {
             const size = tok.match(/^size=(.+)$/);
             if (bg) {
                 const name = bg[1];
-                style += `background:${esc(BG[name] || name)};`;
+                // bg=constructor などで継承プロパティを拾わないよう、自前のキーだけを見る
+                style += `background:${esc((Object.hasOwn(BG, name) && BG[name]) || name)};`;
                 if (name === 'white')
                     classes.push('light');
             }

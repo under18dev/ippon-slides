@@ -90,9 +90,23 @@ const x = 1
 ````
 
 ハイライト対応: `hcl` / `tf` / `terraform`、`sh` / `bash` / `shell` / `zsh`、`json`、
-`js` / `ts` / `jsx` / `tsx`、`console`。
+`js` / `ts` / `jsx` / `tsx`、`yaml` / `yml`、`py` / `python`、`go` / `golang`、`rust` / `rs`、
+`html` / `xml` / `svg`、`css`、`diff` / `patch`、`console`。
 
 `console` は `$ ` で始まる行をコマンド、`Error` を含む行をエラーとして色分けします。
+
+`diff` は `+` で始まる行を追加（緑）、`-` で始まる行を削除（赤）として行全体を塗り、
+`@@` の hunk ヘッダと `---` / `+++` のファイルヘッダも色分けします。`!! ` も併用できます。
+
+````md
+```diff
+@@ -1,2 +1,2 @@
+-const port = 3000
+!! +const port = Number(process.env.PORT ?? 3000)
+```
+````
+
+ハイライトは 1 行ずつ行うため、複数行にまたがるコメントや文字列は 2 行目以降が色分けされません。
 
 ビルド後の HTML ではコードブロックの右上に **Copy ボタン**が出ます。
 

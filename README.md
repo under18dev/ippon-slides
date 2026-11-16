@@ -123,11 +123,12 @@ const app = new Hono()
 | `::http method=GET url=...::` | HTTP リクエストのプレイグラウンド（下記） |
 | `::qr url=...::` | URL の QR コード（SVG）。`caption` を付けると下に URL も出す |
 | `-# 注釈` | 小さい注釈 |
-| ` ```hcl ` | コード。`hcl` / `console` / `sh` / `json` / `js` / `ts` をハイライト |
+| ` ```hcl ` | コード。`hcl` / `console` / `sh` / `json` / `js` / `ts` / `diff` / `yaml` / `py` / `go` / `rust` / `html` / `xml` / `css` をハイライト |
 | `!! ` | コードの行頭に付けるとその行を強調 |
 
 指示は `::center bg=blue size=2::` のようにまとめて書けます。
 `console` のコードは `$ ` で始まる行をコマンド、`Error` を含む行をエラーとして色分けします。
+`diff` のコードは `+` の行を追加（緑）、`-` の行を削除（赤）として行全体を塗り、`@@` の hunk ヘッダと `---` / `+++` のファイルヘッダも色分けします。
 
 ### HTTP プレイグラウンド
 

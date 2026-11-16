@@ -24,6 +24,8 @@ test('parseArgs', () => {
   assert.deepEqual(parseArgs(['serve', 'a.md', '-p', '8080']), { _: ['serve', 'a.md'], port: '8080' })
   assert.throws(() => parseArgs(['--nope']), /不明なオプション/)
   assert.throws(() => parseArgs(['-o']), /値が必要/)
+  // 継承プロパティと同じ名前の引数もただの入力として扱う
+  for (const a of ['constructor', '__proto__', 'toString']) assert.deepEqual(parseArgs([a]), { _: [a] })
 })
 
 test('outputs: 出力先の決め方', () => {
