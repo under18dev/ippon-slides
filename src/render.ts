@@ -14,6 +14,18 @@ const EXTERNAL = /^(?:[a-z][a-z0-9+.-]*:|\/\/|#|\/)/i
 const unesc = (s: string): string =>
   s.replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
 
+/** URL のパスをファイル名に戻す。%26 などの予約文字も戻す（decodeURI は戻さない）。壊れた % はそのまま */
+const decodePath = (s: string): string => {
+  try {
+    return decodeURIComponent(s)
+  } catch {
+    return s
+  }
+}
+
+/** ファイルの相対パスを URL のパスにする（区切りの / 以外をちょうど 1 回だけエンコード） */
+const encodePath = (s: string): string => s.split(sep).map(encodeURIComponent).join('/')
+
 /** --inline で data URI にする画像の MIME */
 const IMAGE_MIME: Record<string, string> = {
   '.png': 'image/png',
@@ -59,7 +71,7 @@ function rewriteImages(html: string, baseDir: string, outDir: string | undefined
     // 属性値は esc() 済み。?v=1 や #id はファイルの場所に含めない
     const src = unesc(attr)
     const [, path, suffix] = src.match(/^([^?#]*)(.*)$/) as [string, string, string]
-    const abs = resolve(baseDir, decodeURI(path))
+    const abs = resolve(baseDir, decodePath(path))
     if (inline) {
       const mime = IMAGE_MIME[extname(abs).toLowerCase()]
       try {
@@ -71,7 +83,7 @@ function rewriteImages(html: string, baseDir: string, outDir: string | undefined
         missing.push(src)
       }
     }
-    const url = outDir ? encodeURI(relative(outDir, abs).split(sep).join('/')) : pathToFileURL(abs).href
+    const url = outDir ? encodePath(relative(outDir, abs)) : pathToFileURL(abs).href
     return pre + esc(url + suffix) + post
   })
 }

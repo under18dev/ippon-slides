@@ -87,6 +87,19 @@ test('--inline: & を含む名前・?v=1 / #id 付き・ノートの画像も埋
   assert.match(html, /\\u003cimg src=\\"data:image\/png;base64,cG5n\\"/)
 })
 
+test('%26 などでエンコードしたパスを二重にエンコードしない', () => {
+  writeFileSync(join(dir, 'pct.md'), '![a](img/r%26r.png)\n\n::note::\n\n![n](img/r%26r.png)\n')
+  run('pct.md', '-o', 'dist/')
+  const html = readFileSync(join(dir, 'dist/pct.html'), 'utf8')
+  assert.match(html, /<img src="..\/img\/r%26r.png"/)
+  assert.match(html, /\\u003cimg src=\\"..\/img\/r%26r.png\\"/)
+  assert.doesNotMatch(html, /%2526/)
+  // --inline でも実ファイル img/r&r.png を読める
+  const out = run('pct.md', '--inline', '-o', 'dist/')
+  assert.doesNotMatch(out, /埋め込めなかった/)
+  assert.equal(readFileSync(join(dir, 'dist/pct.html'), 'utf8').match(/img src=\\?"data:image\/png;base64,cG5n/g)?.length, 2)
+})
+
 test('--css を埋め込む', () => {
   writeFileSync(join(dir, 'x.css'), ':root { --slide-accent: hotpink; }')
   run('build', 'slide.md', '--css', 'x.css', '-o', 'css.html')
