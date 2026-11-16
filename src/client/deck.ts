@@ -7,8 +7,10 @@
 //   p                                       発表者ビュー（別ウィンドウ）
 //   スマホの縦持ち                          縦読みモード（全スライドを縦に並べる。左下のボタンで切り替え）
 (() => {
-  const slides = Array.from(document.querySelectorAll<HTMLElement>('#deck .slide'))
+  let slides = Array.from(document.querySelectorAll<HTMLElement>('#deck .slide'))
   if (!slides.length) return
+  // ビルドされたままの各スライドの HTML（ホットリロードで変わったスライドを見分ける）
+  let srcs = slides.map((s) => s.outerHTML)
 
   // ippon serve のときだけ注入される設定（スマホリモコン用）。無ければ従来どおり何もしない
   const serveCfg = (
@@ -75,6 +77,25 @@
     // コード内のクリックは閉じない（行スポットライトを操作するため）
     box.addEventListener('click', (e) => e.stopPropagation())
     openZoom(box)
+  }
+
+  // serve 中に Markdown が書き換わったら、ページを読み込み直さずに最新のデッキを取ってくる
+  async function fetchDeck(): Promise<Document | null> {
+    try {
+      const res = await fetch(location.href, { cache: 'no-store' })
+      if (!res.ok) return null
+      const doc = new DOMParser().parseFromString(await res.text(), 'text/html')
+      return doc.querySelector('#deck .slide') ? doc : null
+    } catch {
+      return null
+    }
+  }
+  const freshSlides = (doc: Document) => Array.from(doc.querySelectorAll<HTMLElement>('#deck .slide'))
+  // --css を書き換えたときのために <style> も差し替える
+  function syncStyle(doc: Document): void {
+    const cur = document.querySelector('head style')
+    const next = doc.querySelector('head style')
+    if (cur && next && cur.textContent !== next.textContent) cur.textContent = next.textContent
   }
 
   // 別ウィンドウで開いたときは発表者ビューとして動く（本番のナビは動かさない）
@@ -197,7 +218,7 @@
       }
       if (m.type === 'go' && typeof m.n === 'number') go(m.n)
       else if (m.type === 'timer' && m.action === 'reset') resetTimer()
-      else if (m.type === 'reload') location.reload() // Markdown が書き換わった（#N で同じスライドに戻る）
+      else if (m.type === 'reload') hotReload() // Markdown が書き換わった
     }
     // 選択が変わったら state を送り直す（ドラッグ中に連打しないよう少し待つ）
     let selTimer: number | undefined
@@ -483,7 +504,7 @@
       body
     )
   }
-  // スライドの中身に操作を付ける（コピーボタン・拡大・::http:: の再送信）
+  // スライドの中身に操作を付ける（コピーボタン・拡大・::http:: の再送信）。ホットリロードで差し替えたスライドにも付け直す
   function enhance(s: HTMLElement): void {
     // コードブロックの右上にコピーボタンを付ける
     s.querySelectorAll('pre').forEach((pre) => {
@@ -569,6 +590,45 @@
     })
   }
   slides.forEach(enhance)
+
+  // ---------- ホットリロード（serve 中に Markdown が書き換わったら、変わったスライドだけ差し替える） ----------
+
+  async function hotReload(): Promise<void> {
+    const doc = await fetchDeck()
+    if (!doc) return location.reload()
+    const fresh = freshSlides(doc)
+    const next = fresh.map((s, i) => {
+      const old = slides[i]
+      if (old && srcs[i] === s.outerHTML) return old // 変わっていないスライドは触らない
+      const el = document.importNode(s, true)
+      enhance(el)
+      if (old) old.replaceWith(el)
+      else deck.appendChild(el)
+      return el
+    })
+    const replaced = next.filter((el, i) => el !== slides[i])
+    slides.slice(fresh.length).forEach((s) => s.remove())
+    slides = next
+    srcs = fresh.map((s) => s.outerHTML)
+    syncStyle(doc)
+    const notes = doc.getElementById('notes')
+    if (notes) $('notes').textContent = notes.textContent
+
+    // 一覧は作り直す
+    overview.textContent = ''
+    ovItems = null
+    if (ovOpen) openOverview()
+
+    const n = clamp(idx)
+    if (n !== idx) {
+      idx = n
+      history.replaceState(null, '', '#' + (idx + 1))
+    }
+    render()
+    // 差し替えたスライドのフェードインは飛ばす（ちらつかせない）
+    for (const el of replaced) el.getAnimations().forEach((a) => a.finish())
+    if (presenterWin && !presenterWin.closed) presenterWin.postMessage({ ippon: 'reload' }, '*')
+  }
 
   const start = parseInt(location.hash.slice(1), 10)
   if (start) idx = clamp(start - 1)
@@ -690,8 +750,22 @@
     prevBtn.addEventListener('click', () => send(curIdx - 1))
     nextBtn.addEventListener('click', () => send(curIdx + 1))
 
+    // 本番ウィンドウがホットリロードしたら、こちらも最新のスライドとノートを取り直す
+    async function reload(): Promise<void> {
+      const doc = await fetchDeck()
+      if (!doc) return location.reload()
+      slides = freshSlides(doc)
+      total = slides.length
+      syncStyle(doc)
+      try {
+        notesData = JSON.parse(doc.getElementById('notes')?.textContent || '[]')
+      } catch {}
+      draw()
+    }
+
     window.addEventListener('message', (e) => {
       const m = e.data as { ippon?: string; idx?: number; total?: number; startedAt?: number | null } | null
+      if (m && m.ippon === 'reload') return void reload()
       if (!m || m.ippon !== 'state') return
       if (typeof m.idx === 'number') curIdx = m.idx
       if (typeof m.total === 'number') total = m.total
