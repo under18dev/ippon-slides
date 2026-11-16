@@ -13,12 +13,15 @@ title: 発表タイトル
 author: あなたの名前
 description: 説明（任意）
 lang: ja
+url: https://slides.example.com/talk/
 ---
 ```
 
-- `title` … HTML の `<title>`。
-- `author` / `description` … `<meta>` に入る。
+- `title` … HTML の `<title>` と `og:title`。
+- `author` / `description` … `<meta>` に入る（`description` は `og:description` にも）。
 - `lang` … `<html lang>`（既定 `ja`）。
+- `url` … スライドを公開する場所。`og:url` になり、[`ippon ogp`](cli.md#ogp) で作った表紙の画像（`<input>.png`）の絶対 URL を `og:image` に入れる。
+- `image` … `og:image` の画像を差し替える（`url` からの相対パス、または絶対 URL）。
 
 ## スライドの区切り
 
