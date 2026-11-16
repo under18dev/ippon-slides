@@ -1,7 +1,8 @@
 ---
 // トップページのヒーロー。Starlight の Hero を置き換えている（frontmatter に hero があるページ = トップだけで使われる）。
 // 左に名前・説明・ボタン・インストールのコマンド、右にエディタ（slide.md）と、それを ippon で実際にビルドしたデッキ
-// （site/demo/<lang>.md → public/demo/<lang>/）を重ねて置く。エディタは iframe の #N を見て表示中のスライドの Markdown を出す。
+// （site/demo/<lang>.md → public/demo/<lang>/）を重ねて置く。iframe の src は index.html まで書く（astro dev は public/ の
+// ディレクトリの index.html を返さず 404 ページになる）。エディタは iframe の #N を見て表示中のスライドの Markdown を出す。
 import { slideLines } from '../../../dist/markdown.js'
 import { COPY, docsPath, langOf } from '../landing'
 
@@ -79,7 +80,7 @@ const mdHtml = (src: string) => {
     </div>
     <div class="win deck">
       <div class="frame">
-        <iframe id="demo-frame" src={`/demo/${lang}/`} title={t.demo.deck} loading="lazy"></iframe>
+        <iframe id="demo-frame" src={`/demo/${lang}/index.html`} title={t.demo.deck} loading="lazy"></iframe>
       </div>
     </div>
   </div>
