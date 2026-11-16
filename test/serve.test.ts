@@ -104,3 +104,81 @@ test('state は保持され、後から繋いだ購読者にも即届く', async
   assert.match(first, /"idx":1/)
   assert.match(first, /"running":true/)
 })
+
+// ---- /__current-slide（コーディングエージェント向け） ----
+
+const postState = (srv: ServeResult, state: Record<string, unknown>) =>
+  fetch(`http://localhost:${srv.port}/cmd?t=${srv.token}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ type: 'state', total: 2, elapsed: 0, running: false, ...state }),
+  })
+
+test('/__current-slide は表示中のスライドの行範囲・Markdown・選択中の文字列を返す', async () => {
+  const d = mkdtempSync(join(tmpdir(), 'ippon-cur-'))
+  const file = join(d, 'c.md')
+  writeFileSync(file, '---\ntitle: t\n---\n\n# 1 枚目\n\n---\n\n## 2 枚目\n\n- いち\n- に\n\n::note::\n\nメモ\n')
+  const srv = await serve(file, { port: 0 })
+  try {
+    const url = srv.currentUrl
+    assert.equal(url, `http://localhost:${srv.port}/__current-slide`)
+    // デッキが state を送る前は 404
+    assert.equal((await fetch(url)).status, 404)
+
+    await postState(srv, { idx: 1, sel: 'いち' })
+    const res = await fetch(url)
+    assert.equal(res.status, 200)
+    assert.match(res.headers.get('content-type') || '', /application\/json/)
+    assert.deepEqual(await res.json(), {
+      file,
+      slide: 2,
+      total: 2,
+      lines: { start: 9, end: 16 },
+      source: '## 2 枚目\n\n- いち\n- に\n\n::note::\n\nメモ',
+      selection: 'いち',
+    })
+
+    // 書き換えた Markdown を読み直す
+    writeFileSync(file, '# 1 枚目\n\n---\n\n## 2 枚目（改）\n')
+    const after = (await (await fetch(url)).json()) as { lines: unknown; source: string }
+    assert.deepEqual(after.lines, { start: 5, end: 5 })
+    assert.equal(after.source, '## 2 枚目（改）')
+  } finally {
+    srv.server.close()
+    rmSync(d, { recursive: true, force: true })
+  }
+})
+
+test('/__current-slide は localhost 以外の Host を拒否する（DNS リバインディング対策）', async () => {
+  const { request } = await import('node:http')
+  const status = await new Promise<number>((res, rej) => {
+    const req = request({ host: '127.0.0.1', port: r.port, path: '/__current-slide', headers: { host: 'evil.example' } }, (x) => {
+      x.resume()
+      res(x.statusCode || 0)
+    })
+    req.on('error', rej)
+    req.end()
+  })
+  assert.equal(status, 403)
+})
+
+test('Markdown を書き換えると SSE で reload を配信し、/ も新しい内容を返す', async () => {
+  const ac = new AbortController()
+  const es = await fetch(base() + '/events?t=' + r.token, { signal: ac.signal })
+  const reader = es.body!.getReader()
+  const read = (async () => {
+    let buf = ''
+    while (!buf.includes('"type":"reload"')) {
+      const { value, done } = await reader.read()
+      if (done) break
+      buf += new TextDecoder().decode(value)
+    }
+    return buf
+  })()
+  await new Promise((res) => setTimeout(res, 50))
+  writeFileSync(md, '# 書き換えたタイトル\n')
+  const buf = await Promise.race([read, new Promise<string>((res) => setTimeout(() => res(''), 3000))])
+  ac.abort()
+  assert.match(buf, /"type":"reload"/)
+  assert.match((await get('/?t=' + r.token)).body, /書き換えたタイトル/)
+})

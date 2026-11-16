@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, statSync, watch, writeFileSync } from 'node:fs'
-import { basename, dirname, extname, join, resolve } from 'node:path'
+import { basename, dirname, extname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { current, real, register, skillsInit } from './agent.ts'
 import { fetchAll } from './http.ts'
 import { scanHttp } from './markdown.ts'
 import { toPdf } from './pdf.ts'
@@ -17,6 +18,8 @@ const HELP = `ippon v${pkg.version} — 1 枚 1 メッセージのスライド�
   ippon <input.md> [options]         build の省略形
   ippon serve <input.md> [options]   ローカルで配信し、スマホをリモコンにする
   ippon init [file]                  サンプルの Markdown を作る（デフォルト: slide.md）
+  ippon current [input.md]           serve 中のデッキで表示中のスライドと選択中の文字列を JSON で出す
+  ippon skills init [dir]            current を使うエージェント用スキルを .claude/skills と .agents/skills に置く
 
 build のオプション:
       --html                 HTML を出力する（--pdf がなければデフォルト）
@@ -32,6 +35,9 @@ serve のオプション:
   -p, --port <n>             待ち受けポート（省略時は空きポートを自動）
       --css <file>           追加の CSS
 
+skills init のオプション:
+      --force                既にある SKILL.md を上書きする
+
   -h, --help                 ヘルプ
   -v, --version              バージョン
 
@@ -41,6 +47,7 @@ serve のオプション:
   ippon build slide.md --html --pdf -o dist/talk
   ippon build slide.md --html -w
   ippon serve slide.md
+  ippon skills init
 `
 
 // ---------------------------------------------------------------
@@ -56,16 +63,17 @@ export interface Options {
   help?: boolean
   version?: boolean
   noFetch?: boolean
+  force?: boolean
   output?: string
   css?: string
   browserPath?: string
   port?: string
 }
 
-type Flag = 'html' | 'pdf' | 'watch' | 'help' | 'version' | 'noFetch'
+type Flag = 'html' | 'pdf' | 'watch' | 'help' | 'version' | 'noFetch' | 'force'
 type Value = 'output' | 'css' | 'browserPath' | 'port'
 
-const FLAGS: Record<string, Flag> = { '--html': 'html', '--pdf': 'pdf', '-w': 'watch', '--watch': 'watch', '--no-fetch': 'noFetch', '-h': 'help', '--help': 'help', '-v': 'version', '--version': 'version' }
+const FLAGS: Record<string, Flag> = { '--html': 'html', '--pdf': 'pdf', '-w': 'watch', '--watch': 'watch', '--no-fetch': 'noFetch', '--force': 'force', '-h': 'help', '--help': 'help', '-v': 'version', '--version': 'version' }
 const VALUES: Record<string, Value> = { '-o': 'output', '--output': 'output', '--css': 'css', '--browser-path': 'browserPath', '-p': 'port', '--port': 'port' }
 
 export function parseArgs(argv: string[]): Options {
@@ -175,6 +183,10 @@ async function runServe(input: string, opts: Options): Promise<void> {
     if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error(`ポートが不正です: ${opts.port}`)
   }
   const r = await serve(input, { port, css: opts.css })
+  // ippon current がこのサーバを見つけられるように登録しておく（終了時に消す）
+  const unregister = register({ port: r.port, file: real(input), pid: process.pid, startedAt: Date.now() })
+  process.on('exit', unregister)
+  for (const sig of ['SIGINT', 'SIGTERM'] as const) process.once(sig, () => process.exit(sig === 'SIGINT' ? 130 : 143))
   console.log(qrTerminal(r.remoteUrls[0]!))
   console.log(`✓ ippon serve で配信中`)
   console.log(``)
@@ -183,6 +195,9 @@ async function runServe(input: string, opts: Options): Promise<void> {
   console.log(``)
   console.log(`  ↑ の QR をスマホのカメラで読み取るとリモコンになります（PC と同じ Wi-Fi に接続）`)
   console.log(`  発表者ビュー（p）にも QR が出ます。Ctrl+C で終了`)
+  console.log(``)
+  console.log(`  表示中のスライド: ippon current（または curl -s ${r.currentUrl}）`)
+  console.log(`  （選択中の文字列と Markdown の行番号を返します。ippon skills init でエージェントに使い方を教えられます）`)
 }
 
 // ---------------------------------------------------------------
@@ -295,6 +310,19 @@ export async function main(argv: string[]): Promise<void> {
 
   let rest = args
   if (cmd === 'init') return init(rest[0])
+  if (cmd === 'current') {
+    if (rest.length > 1) throw new Error(`入力は 1 つだけ指定してください: ${rest.join(' ')}`)
+    return console.log(await current(process.cwd(), rest[0]))
+  }
+  if (cmd === 'skills') {
+    if (rest[0] !== 'init') throw new Error('使い方: ippon skills init [dir]')
+    const { written, skipped } = skillsInit(resolve(rest[1] || '.'), opts.force)
+    const rel = (p: string) => relative(process.cwd(), p)
+    for (const p of written) console.log(`✓ ${rel(p)}`)
+    for (const p of skipped) console.log(`- ${rel(p)} はすでにあります（--force で上書き）`)
+    if (written.length) console.log(`  ippon serve 中に「ここ直して」と頼むと、エージェントが ippon current で表示中のスライドを読みます`)
+    return
+  }
   if (cmd === 'serve') {
     const input = rest[0]
     if (!input) throw new Error('入力の Markdown を指定してください（例: ippon serve slide.md）')

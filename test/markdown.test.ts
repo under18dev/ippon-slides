@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { httpKey, parse, parseHttp, parseQr, scanHttp } from '../src/markdown.ts'
+import { httpKey, parse, parseHttp, parseQr, scanHttp, slideLines } from '../src/markdown.ts'
 import type { HttpMap } from '../src/markdown.ts'
 
 test('--- でスライドを分ける（コードブロック内の --- は無視）', () => {
@@ -180,4 +180,16 @@ test('::qr:: の URL が長すぎるとエラーにする', () => {
 test('コードフェンス内の ::qr:: はそのまま', () => {
   const [s = ''] = parse('```\n::qr url=https://e.x::\n```\n').sections
   assert.doesNotMatch(s, /class="qr"/)
+})
+
+test('slideLines はスライドごとの元ファイル上の行範囲を返す（frontmatter・空行・コード内の --- を考慮）', () => {
+  const md = '---\ntitle: t\n---\n\n# 1 枚目\n\n本文\n\n---\n\n```\n---\n```\n\n---\n---\n\n## 3 枚目\n'
+  assert.deepEqual(slideLines(md), [
+    [5, 7],
+    [11, 13],
+    [18, 18],
+  ])
+  assert.equal(slideLines(md).length, parse(md).sections.length)
+  // CRLF でも同じ
+  assert.deepEqual(slideLines(md.replace(/\n/g, '\r\n')), slideLines(md))
 })

@@ -155,8 +155,17 @@
 
   // ---------- serve（スマホリモコン：SSE で受信、/cmd へ state 送信） ----------
 
+  // デッキ上で選択中の文字列（/__current-slide でコーディングエージェントに渡す）
+  function selectedText(): string {
+    const sel = window.getSelection()
+    if (!sel || sel.isCollapsed || !sel.anchorNode || !$('deck').contains(sel.anchorNode)) return ''
+    return String(sel).trim().slice(0, 2000)
+  }
+  let lastSel = ''
+
   function netPublish(): void {
     if (!serveCfg) return
+    lastSel = selectedText()
     const running = startedAt != null
     fetch('/cmd?t=' + encodeURIComponent(serveCfg.token), {
       method: 'POST',
@@ -167,6 +176,7 @@
         total: slides.length,
         elapsed: running ? Date.now() - startedAt! : 0,
         running,
+        sel: lastSel,
       }),
     }).catch(() => {})
   }
@@ -187,7 +197,16 @@
       }
       if (m.type === 'go' && typeof m.n === 'number') go(m.n)
       else if (m.type === 'timer' && m.action === 'reset') resetTimer()
+      else if (m.type === 'reload') location.reload() // Markdown が書き換わった（#N で同じスライドに戻る）
     }
+    // 選択が変わったら state を送り直す（ドラッグ中に連打しないよう少し待つ）
+    let selTimer: number | undefined
+    document.addEventListener('selectionchange', () => {
+      clearTimeout(selTimer)
+      selTimer = window.setTimeout(() => {
+        if (selectedText() !== lastSel) netPublish()
+      }, 250)
+    })
   }
 
   // QR を全画面で出す（r キー）。スマホのカメラで読めばリモコンになる

@@ -4,16 +4,18 @@
 //   - GET /remote?t=TOKEN   スマホのリモコン画面
 //   - GET /events?t=TOKEN   SSE。state / コマンドを全クライアントへ配信
 //   - POST /cmd?t=TOKEN     コマンド送信（go / timer / state）
+//   - GET /__current-slide  いま表示中のスライドと選択中の文字列（この PC からだけ、トークン不要）
 //   - それ以外              Markdown のあるディレクトリから静的配信（画像など）
 //
 // 通信は SSE + fetch POST の小さな pub/sub だけ。WebSocket も外部依存も使わない。
+// Markdown / --css を書き換えると、開いているデッキとリモコンを再読み込みさせる。
 import { randomUUID } from 'node:crypto';
-import { readFileSync, statSync } from 'node:fs';
+import { readFileSync, statSync, watch } from 'node:fs';
 import { createServer } from 'node:http';
 import { networkInterfaces } from 'node:os';
 import { dirname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parse } from './markdown.js';
+import { parse, slideLines } from './markdown.js';
 import { qrSvg } from './qr.js';
 import { render } from './render.js';
 const assets = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets');
@@ -35,6 +37,16 @@ const MIME = {
 // .json / .html / .js / .css / .md などは（隣に置かれた設定・秘密・発表者ノートを
 // 漏らさないよう）配信しない。
 const STATIC_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.avif', '.ico']);
+const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
+/**
+ * この PC から localhost 宛てに来たリクエストか。
+ * Host も見るのは、外部サイトが DNS リバインディングで localhost を読むのを防ぐため
+ */
+function isLocal(req) {
+    const host = (req.headers.host || '').replace(/:\d+$/, '').toLowerCase();
+    return LOOPBACK.has(req.socket.remoteAddress || '') && LOCAL_HOSTS.has(host);
+}
 function lanIps() {
     const out = [];
     const ifs = networkInterfaces();
@@ -93,12 +105,14 @@ button{font:inherit;color:#fff;background:#2a2a2e;border:1px solid rgba(255,255,
 `;
 }
 export async function serve(input, opts = {}) {
-    const md = readFileSync(input, 'utf8');
-    const css = opts.css ? readFileSync(opts.css, 'utf8') : '';
-    const baseDir = dirname(resolve(input));
+    const mdFile = resolve(input);
+    const baseDir = dirname(mdFile);
     const token = randomUUID();
-    const { meta, notes, sections } = parse(md);
-    const title = meta.title || 'slides';
+    // 編集を反映するため、Markdown と CSS はリクエストのたびに読み直す
+    const readMd = () => readFileSync(mdFile, 'utf8');
+    const readCss = () => (opts.css ? readFileSync(opts.css, 'utf8') : '');
+    readMd();
+    readCss();
     let port = 0;
     // SSE の購読者と、途中参加に即返す最新 state
     const clients = new Set();
@@ -152,11 +166,35 @@ export async function serve(input, opts = {}) {
                 });
                 return;
             }
+            // ---- いま表示中のスライド（コーディングエージェント向け） ----
+            if (path === '/__current-slide') {
+                if (!authed && !isLocal(req))
+                    return end(res, 403, 'forbidden');
+                const state = lastState ? JSON.parse(lastState) : null;
+                if (!state || typeof state.idx !== 'number')
+                    return json(res, 404, { error: 'デッキがまだ開かれていません。ippon serve が表示した URL をブラウザで開いてください' });
+                const md = readMd();
+                const ranges = slideLines(md);
+                const range = ranges[state.idx];
+                if (!range)
+                    return json(res, 404, { error: `スライド ${state.idx + 1} が見つかりません（Markdown が変わった可能性があります）` });
+                const [start, endLine] = range;
+                const current = {
+                    file: mdFile,
+                    slide: state.idx + 1,
+                    total: ranges.length,
+                    lines: { start, end: endLine },
+                    source: md.replace(/\r\n/g, '\n').split('\n').slice(start - 1, endLine).join('\n'),
+                    selection: typeof state.sel === 'string' ? state.sel : '',
+                };
+                return json(res, 200, current);
+            }
             // ---- リモコン画面 ----
             if (path === '/remote') {
                 if (!authed)
                     return end(res, 403, 'このページは ippon serve の QR から開いてください');
-                const html = remotePage(token, notes, sections.length, title);
+                const { meta, notes, sections } = parse(readMd());
+                const html = remotePage(token, notes, sections.length, meta.title || 'slides');
                 return end(res, 200, html, 'text/html; charset=utf-8');
             }
             // ---- デッキ本体 ----
@@ -166,7 +204,7 @@ export async function serve(input, opts = {}) {
                 const ips = lanIps();
                 const remoteUrl = `http://${ips[0] || 'localhost'}:${port}/remote?t=${token}`;
                 const config = `<script>window.__ippon=${safeJson({ token, remoteUrl, qr: qrSvg(remoteUrl, 4) })}</script>\n`;
-                let html = render(md, { baseDir, outDir: baseDir, css }).html;
+                let html = render(readMd(), { baseDir, outDir: baseDir, css: readCss() }).html;
                 html = html.replace('<script id="notes"', config + '<script id="notes"');
                 return end(res, 200, html, 'text/html; charset=utf-8');
             }
@@ -204,6 +242,23 @@ export async function serve(input, opts = {}) {
             res(typeof addr === 'object' && addr ? addr.port : 0);
         });
     });
+    // Markdown / CSS が変わったら、開いているデッキとリモコンに再読み込みさせる。
+    // エディタによっては置き換え保存するので、ファイルではなく親ディレクトリを監視する
+    const files = [mdFile, ...(opts.css ? [resolve(opts.css)] : [])];
+    let reloadTimer;
+    const watchers = [...new Set(files.map(dirname))].map((dir) => watch(dir, (_, name) => {
+        if (!name || !files.includes(join(dir, name.toString())))
+            return;
+        clearTimeout(reloadTimer);
+        reloadTimer = setTimeout(() => broadcast(JSON.stringify({ type: 'reload' })), 100);
+    }));
+    for (const w of watchers)
+        w.unref();
+    server.on('close', () => {
+        clearTimeout(reloadTimer);
+        for (const w of watchers)
+            w.close();
+    });
     const ips = lanIps();
     const remoteUrls = (ips.length ? ips : ['localhost']).map((ip) => `http://${ip}:${port}/remote?t=${token}`);
     return {
@@ -213,7 +268,11 @@ export async function serve(input, opts = {}) {
         deckUrl: `http://localhost:${port}/?t=${token}`,
         remoteUrls,
         qrSvg: qrSvg(remoteUrls[0], 4),
+        currentUrl: `http://localhost:${port}/__current-slide`,
     };
+}
+function json(res, status, body) {
+    end(res, status, JSON.stringify(body, null, 2) + '\n', 'application/json; charset=utf-8');
 }
 function end(res, status, body, type = 'text/plain; charset=utf-8') {
     res.writeHead(status, { 'content-type': type });

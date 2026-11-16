@@ -5,6 +5,8 @@ ippon build <input.md> [options]   スライドをビルドする
 ippon <input.md> [options]         build の省略形
 ippon serve <input.md> [options]   ローカルで配信し、スマホをリモコンにする
 ippon init [file]                  サンプルの Markdown を作る（既定: slide.md）
+ippon current [input.md]           serve 中のデッキで表示中のスライドと選択中の文字列を JSON で出す
+ippon skills init [dir]            current を使うエージェント用スキルを .claude/skills と .agents/skills に置く
 ippon --help / --version
 ```
 
@@ -50,6 +52,35 @@ ippon init talk.md    # 名前を指定
 ```
 
 既存のファイルがある場合は上書きせずエラーにします。
+
+## `current`
+
+起動中の `ippon serve` に問い合わせ、ブラウザで表示中のスライドとデッキ上で選択中の文字列を
+JSON で出します（中身は [`/__current-slide`](serve.md#コーディングエージェントと一緒に直す__current-slide) と同じ）。
+
+```sh
+ippon current            # 今いるディレクトリ配下の Markdown を serve しているもの（無ければ一番新しいもの）
+ippon current talk.md    # talk.md を serve しているもの
+```
+
+`ippon serve` は起動中のポートを `~/.ippon/serve/` に登録し、終了時に消します。
+`ippon current` はそこからサーバを探すので、ポートを知らなくても使えます。
+
+## `skills init`
+
+`ippon current` の使い方を教える [Agent Skills](https://agentskills.io/) の `SKILL.md` を置きます。
+
+```sh
+ippon skills init          # 今いるディレクトリに置く
+ippon skills init ../talk  # 指定したディレクトリに置く
+```
+
+| 置き場所 | 読むエージェント |
+|---|---|
+| `.claude/skills/ippon-slides/SKILL.md` | Claude Code |
+| `.agents/skills/ippon-slides/SKILL.md` | Codex など `.agents/skills` を読むエージェント |
+
+既にある `SKILL.md` は上書きしません（手を入れた内容を消さないため）。`--force` で上書きします。
 
 ## 環境変数
 
