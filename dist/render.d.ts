@@ -8,10 +8,14 @@ export interface RenderOptions {
     css?: string;
     /** ::http:: のビルド時取得結果（省略すると未取得状態で焼き込む） */
     http?: HttpMap;
+    /** 相対パスの画像を data URI で埋め込む（--inline） */
+    inline?: boolean;
 }
 export interface RenderResult {
     html: string;
     /** スライドの枚数 */
     count: number;
+    /** inline のときに埋め込めなかった画像（Markdown に書かれたパス） */
+    missing: string[];
 }
-export declare function render(md: string, { baseDir, outDir, css, http }: RenderOptions): RenderResult;
+export declare function render(md: string, { baseDir, outDir, css, http, inline }: RenderOptions): RenderResult;

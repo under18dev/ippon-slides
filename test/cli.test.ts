@@ -62,6 +62,44 @@ test('画像の相対パスは出力先から見たパスに書き換える', ()
   assert.match(html, /<img src="https:\/\/e.x\/b.png"/)
 })
 
+test('--inline で画像を data URI で埋め込む', () => {
+  writeFileSync(join(dir, 'img/c.png'), 'png')
+  writeFileSync(join(dir, 'inline.md'), '![c](img/c.png)\n\n---\n\n![d](img/none.png)\n\n---\n\n![e](https://e.x/e.png)\n')
+  const out = run('inline.md', '--inline', '-o', 'dist/')
+  const html = readFileSync(join(dir, 'dist/inline.html'), 'utf8')
+  assert.match(html, /<img src="data:image\/png;base64,cG5n"/)
+  // 読めない画像はパスのまま残して知らせる
+  assert.match(html, /<img src="..\/img\/none.png"/)
+  assert.match(out, /埋め込めなかった画像.*img\/none\.png/)
+  assert.match(html, /<img src="https:\/\/e.x\/e.png"/)
+})
+
+test('--inline: & を含む名前・?v=1 / #id 付き・ノートの画像も埋め込む', () => {
+  writeFileSync(join(dir, 'img/r&r.png'), 'png')
+  writeFileSync(join(dir, 'img/s.svg'), '<svg/>')
+  writeFileSync(join(dir, 'inline2.md'), '![a](img/r&r.png)\n\n![b](img/c.png?v=1)\n\n![c](img/s.svg#x)\n\n::note::\n\n![n](img/c.png)\n')
+  const out = run('inline2.md', '--inline', '-o', 'dist/')
+  const html = readFileSync(join(dir, 'dist/inline2.html'), 'utf8')
+  assert.doesNotMatch(out, /埋め込めなかった/)
+  assert.equal(html.match(/<img src="data:image\/png;base64,cG5n"/g)?.length, 2)
+  assert.match(html, /<img src="data:image\/svg\+xml;base64,PHN2Zy8\+#x"/)
+  // ノートは JSON に入る（< は \u003c、" は \" になる）
+  assert.match(html, /\\u003cimg src=\\"data:image\/png;base64,cG5n\\"/)
+})
+
+test('%26 などでエンコードしたパスを二重にエンコードしない', () => {
+  writeFileSync(join(dir, 'pct.md'), '![a](img/r%26r.png)\n\n::note::\n\n![n](img/r%26r.png)\n')
+  run('pct.md', '-o', 'dist/')
+  const html = readFileSync(join(dir, 'dist/pct.html'), 'utf8')
+  assert.match(html, /<img src="..\/img\/r%26r.png"/)
+  assert.match(html, /\\u003cimg src=\\"..\/img\/r%26r.png\\"/)
+  assert.doesNotMatch(html, /%2526/)
+  // --inline でも実ファイル img/r&r.png を読める
+  const out = run('pct.md', '--inline', '-o', 'dist/')
+  assert.doesNotMatch(out, /埋め込めなかった/)
+  assert.equal(readFileSync(join(dir, 'dist/pct.html'), 'utf8').match(/img src=\\?"data:image\/png;base64,cG5n/g)?.length, 2)
+})
+
 test('--css を埋め込む', () => {
   writeFileSync(join(dir, 'x.css'), ':root { --slide-accent: hotpink; }')
   run('build', 'slide.md', '--css', 'x.css', '-o', 'css.html')

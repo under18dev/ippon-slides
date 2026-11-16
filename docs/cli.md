@@ -19,6 +19,7 @@ ippon --help / --version
 | `-o, --output <path>` | 出力先。ディレクトリ指定でその中に `<input>.html` / `.pdf` を作る。`--html --pdf` 両方指定時は拡張子だけ差し替える |
 | `-w, --watch` | Markdown と `--css` の変更を監視して再ビルド |
 | `--css <file>` | 追加の CSS（[見た目を変える](theming.md)） |
+| `--inline` | 相対パスの画像を data URI で HTML に埋め込む。HTML 1 ファイルを渡すだけで画像も出る（読めない画像はパスのまま残して知らせる） |
 | `--no-fetch` | [`::http::`](http.md) のレスポンスをビルド時に取得しない |
 | `--browser-path <path>` | PDF に使うブラウザ（環境変数 `CHROME_PATH` でも可） |
 
@@ -33,6 +34,7 @@ ippon build slide.md --html
 ippon build slide.md --pdf -o dist/
 ippon build slide.md --html --pdf -o dist/talk
 ippon build slide.md --html -w
+ippon build slide.md --inline
 ```
 
 ## `serve`

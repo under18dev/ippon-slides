@@ -28,6 +28,7 @@ build のオプション:
                              ディレクトリを指定するとその中に <input>.html / .pdf を作る
   -w, --watch                Markdown と --css の変更を監視して再ビルドする
       --css <file>           追加の CSS（色やフォントの上書きなど）
+      --inline               画像を HTML に埋め込む（HTML 1 ファイルだけで画像も出る）
       --no-fetch             ::http:: のレスポンスをビルド時に取得しない
       --browser-path <path>  PDF に使うブラウザ（環境変数 CHROME_PATH でも可）
 
@@ -46,6 +47,7 @@ skills init のオプション:
   ippon build slide.md --pdf -o dist/
   ippon build slide.md --html --pdf -o dist/talk
   ippon build slide.md --html -w
+  ippon build slide.md --inline
   ippon serve slide.md
   ippon skills init
 `
@@ -63,6 +65,7 @@ export interface Options {
   help?: boolean
   version?: boolean
   noFetch?: boolean
+  inline?: boolean
   force?: boolean
   output?: string
   css?: string
@@ -70,10 +73,10 @@ export interface Options {
   port?: string
 }
 
-type Flag = 'html' | 'pdf' | 'watch' | 'help' | 'version' | 'noFetch' | 'force'
+type Flag = 'html' | 'pdf' | 'watch' | 'help' | 'version' | 'noFetch' | 'inline' | 'force'
 type Value = 'output' | 'css' | 'browserPath' | 'port'
 
-const FLAGS: Record<string, Flag> = { '--html': 'html', '--pdf': 'pdf', '-w': 'watch', '--watch': 'watch', '--no-fetch': 'noFetch', '--force': 'force', '-h': 'help', '--help': 'help', '-v': 'version', '--version': 'version' }
+const FLAGS: Record<string, Flag> = { '--html': 'html', '--pdf': 'pdf', '-w': 'watch', '--watch': 'watch', '--no-fetch': 'noFetch', '--inline': 'inline', '--force': 'force', '-h': 'help', '--help': 'help', '-v': 'version', '--version': 'version' }
 const VALUES: Record<string, Value> = { '-o': 'output', '--output': 'output', '--css': 'css', '--browser-path': 'browserPath', '-p': 'port', '--port': 'port' }
 
 export function parseArgs(argv: string[]): Options {
@@ -142,9 +145,10 @@ async function build(input: string, opts: Options): Promise<void> {
   for (const { format, path } of outputs(input, opts)) {
     mkdirSync(dirname(path), { recursive: true })
     if (format === 'html') {
-      const { html, count } = render(md, { baseDir, outDir: dirname(path), css, http })
+      const { html, count, missing } = render(md, { baseDir, outDir: dirname(path), css, http, inline: opts.inline })
       writeFileSync(path, html)
       console.log(`${time()} ✓ ${count} slides → ${path}`)
+      if (missing.length) console.log(`${time()}   ↳ 埋め込めなかった画像（パスのまま）: ${missing.join(', ')}`)
     } else {
       const { html, count } = render(md, { baseDir, css, http })
       await toPdf(html, path, { browserPath: opts.browserPath })
