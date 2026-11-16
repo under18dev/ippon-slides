@@ -45,8 +45,11 @@ export default defineConfig({
         { tag: 'meta', attrs: { name: 'theme-color', content: '#000000' } },
       ],
       customCss: ['./src/styles/theme.css'],
+      // コードブロックに端末風の枠（3 つの点）を付けない
+      expressiveCode: { defaultProps: { frame: 'none' } },
       components: {
         SiteTitle: './src/components/SiteTitle.astro',
+        Hero: './src/components/Hero.astro',
       },
     }),
   ],

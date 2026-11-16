@@ -1,5 +1,22 @@
 ---
-import Landing from '../components/Landing.astro'
+// トップページ。Starlight のページとして描き（ヘッダー・検索・テーマ切り替えをドキュメントと共有）、
+// ヒーローは components/Hero.astro（Starlight の Hero を置き換え）、本文は機能のカード
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro'
+import Features from '../components/Features.astro'
+import { COPY, homeHead } from '../landing'
+
+const t = COPY.en
 ---
 
-<Landing lang="en" />
+<StarlightPage
+  frontmatter={{
+    title: t.title,
+    description: t.description,
+    template: 'splash',
+    hero: { title: t.title },
+    pagefind: false,
+    head: homeHead('en'),
+  }}
+>
+  <Features lang="en" />
+</StarlightPage>

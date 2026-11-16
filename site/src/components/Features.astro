@@ -1,0 +1,86 @@
+---
+// トップページの機能のカード（4 列）と、最後のライセンス表記
+import { Icon } from '@astrojs/starlight/components'
+import { COPY, type Lang } from '../landing'
+
+interface Props {
+  lang: Lang
+}
+
+const t = COPY[Astro.props.lang]
+---
+
+<div class="features not-content">
+  {
+    t.features.map(([icon, title, body]) => (
+      <div class="feature">
+        <div class="icon">
+          <Icon name={icon} size="1.25rem" />
+        </div>
+        <h2>{title}</h2>
+        <p set:html={body} />
+      </div>
+    ))
+  }
+</div>
+<p class="license not-content">{t.footer} © 2026 tanahiro2010</p>
+
+<style>
+  .features {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  @media (max-width: 60rem) {
+    .features {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 30rem) {
+    .features {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .feature {
+    padding: 1.4rem;
+    border-radius: 12px;
+    background: var(--sl-color-gray-6);
+  }
+  .icon {
+    display: grid;
+    place-items: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 8px;
+    background: var(--sl-color-accent-low);
+    color: var(--sl-color-accent);
+  }
+  h2 {
+    margin: 1.1rem 0 0;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--sl-color-white);
+  }
+  p {
+    margin: 0.5rem 0 0;
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: var(--sl-color-gray-3);
+  }
+  p :global(code) {
+    font-size: 0.85em;
+    padding: 0.1em 0.3em;
+    border-radius: 4px;
+    background: var(--sl-color-gray-5);
+    color: var(--sl-color-gray-1);
+  }
+  .license {
+    margin: 4rem 0 0;
+    padding-top: 2rem;
+    border-top: 1px solid var(--sl-color-hairline);
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--sl-color-gray-3);
+  }
+</style>

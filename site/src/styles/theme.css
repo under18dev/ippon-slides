@@ -1,24 +1,24 @@
-/* ippon のブランド（黒・オレンジ 1 色・大きな文字）を Starlight に当てる。色の決まりは site/DESIGN.md */
+/* ippon のブランド（暗い灰色・オレンジ 1 色・大きな文字）を Starlight に当てる。色の決まりは site/DESIGN.md */
 
 :root {
   --sl-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
 
-  /* 青みのない灰色と、本物の黒 */
-  --sl-color-white: #ffffff;
+  /* VitePress（hono.dev / sli.dev）に近い、わずかに暖かい暗い灰色 */
+  --sl-color-white: #fffff5;
   --sl-color-gray-1: #ececec;
-  --sl-color-gray-2: #c9c9c9;
-  --sl-color-gray-3: #8a8a8a;
-  --sl-color-gray-4: #5c5c5c;
-  --sl-color-gray-5: #2a2a2a;
-  --sl-color-gray-6: #141414;
-  --sl-color-black: #000000;
+  --sl-color-gray-2: #dfdfd6;
+  --sl-color-gray-3: #98989f;
+  --sl-color-gray-4: #6a6a71;
+  --sl-color-gray-5: #3c3f44;
+  --sl-color-gray-6: #202127;
+  --sl-color-black: #1b1b1f;
 
   --sl-color-accent-low: #3a1a00;
   --sl-color-accent: #ff6a00;
   --sl-color-accent-high: #ffb27a;
 
-  --sl-color-bg-nav: #000000;
-  --sl-color-bg-sidebar: #000000;
+  --sl-color-bg-nav: #1b1b1f;
+  --sl-color-bg-sidebar: #1b1b1f;
   --sl-color-hairline: rgba(255, 255, 255, 0.08);
   --sl-color-hairline-light: rgba(255, 255, 255, 0.14);
 
@@ -33,8 +33,8 @@
   --sl-color-gray-3: #5c5c5c;
   --sl-color-gray-4: #8a8a8a;
   --sl-color-gray-5: #d4d4d4;
-  --sl-color-gray-6: #f0f0f0;
-  --sl-color-gray-7: #f7f7f7;
+  --sl-color-gray-6: #f6f6f7;
+  --sl-color-gray-7: #f9f9fa;
   --sl-color-black: #ffffff;
 
   --sl-color-accent-low: #ffe2cc;
@@ -47,25 +47,47 @@
   --sl-color-hairline-light: rgba(0, 0, 0, 0.14);
 }
 
-/* 見出しは詰めて太く（スライドと同じ手触り） */
-.sl-markdown-content :is(h1, h2, h3),
+/* 本文は VitePress（hono.dev / sli.dev）の手触りに寄せる：見出しは太すぎず、h2 の上に区切り線 */
 h1#_top {
+  font-size: 2rem;
+  font-weight: 600;
   letter-spacing: -0.02em;
-  font-weight: 800;
-  text-wrap: balance;
+  line-height: 1.25;
 }
-h1#_top {
-  letter-spacing: -0.03em;
+.content-panel + .content-panel {
+  border-top: 0;
+}
+.sl-markdown-content :is(h2, h3, h4):not(:where(.not-content *)) {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.sl-markdown-content h2:not(:where(.not-content *)) {
+  font-size: 1.5rem;
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--sl-color-hairline-light);
+}
+.sl-markdown-content h3:not(:where(.not-content *)) {
+  font-size: 1.2rem;
+  margin-top: 2rem;
 }
 
-/* リンクは本文色 + オレンジの下線 */
+/* リンクはアクセント色、下線はホバーで */
 .sl-markdown-content a:not(:where(.not-content *)) {
-  color: var(--sl-color-white);
-  text-decoration-color: var(--sl-color-accent);
-  text-underline-offset: 0.2em;
+  color: var(--sl-color-accent);
+  font-weight: 500;
+  text-decoration: none;
 }
 .sl-markdown-content a:not(:where(.not-content *)):hover {
-  color: var(--sl-color-accent-high);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+/* インラインのコードは角丸の薄い背景 */
+.sl-markdown-content :not(pre) > code {
+  border-radius: 4px;
+  padding: 0.15em 0.4em;
+  background: var(--sl-color-gray-6);
 }
 
 /* 表は罫線だけ */
@@ -77,10 +99,14 @@ h1#_top {
   border-bottom: 1px solid var(--sl-color-hairline-light);
 }
 
-/* サイドバーの現在地はオレンジの縦線 */
+/* サイドバーの現在地はアクセント色の文字だけ */
 .sidebar-content a[aria-current='page'] {
   background: transparent;
-  color: var(--sl-color-white);
+  color: var(--sl-color-accent);
+  font-weight: 600;
+}
+.sidebar-content .group-label .large {
+  font-size: 0.95rem;
   font-weight: 700;
-  box-shadow: inset 2px 0 0 var(--sl-color-accent);
+  color: var(--sl-color-white);
 }
