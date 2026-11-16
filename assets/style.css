@@ -376,6 +376,59 @@ body {
 .hl-ok {
   color: #98c379;
 }
+/* diff：追加・削除は行全体を帯で塗る */
+.hl-add,
+.hl-del {
+  display: inline-block;
+  width: calc(100% + 3rem);
+  margin: 0 -1.5rem;
+  padding: 0 1.5rem;
+  box-sizing: border-box;
+}
+.hl-add {
+  color: #98c379;
+  background: rgba(152, 195, 121, 0.14);
+}
+.hl-del {
+  color: #f07178;
+  background: rgba(240, 113, 120, 0.14);
+}
+.hl-hunk {
+  color: #56b6c2;
+}
+.hl-meta {
+  color: #7f848e;
+}
+.light .hl-add {
+  color: #116329;
+  background: rgba(46, 160, 67, 0.16);
+}
+.light .hl-del {
+  color: #a40e26;
+  background: rgba(248, 81, 73, 0.16);
+}
+.light .hl-hunk {
+  color: #0550ae;
+}
+.light .hl-meta {
+  color: #6e7781;
+}
+/* 拡大表示では 1 行ごとのブロックに合わせる */
+.zc-line .hl-add,
+.zc-line .hl-del {
+  display: block;
+  width: auto;
+  margin: 0 -0.4em;
+  padding: 0 0.4em;
+}
+/* `!! ` と重なったら帯は強調側に任せ、文字色だけ残す */
+.hl-mark .hl-add,
+.hl-mark .hl-del {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  background: none;
+}
 /* `!! ` を付けた行は行全体を帯でハイライト */
 .hl-mark {
   display: inline-block;

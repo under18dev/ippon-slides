@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { httpKey, parse, parseHttp, parseQr, scanHttp, slideLines } from '../src/markdown.ts'
 import type { HttpMap } from '../src/markdown.ts'
+import { highlight } from '../src/highlight.ts'
 
 test('--- でスライドを分ける（コードブロック内の --- は無視）', () => {
   const { sections } = parse('# a\n\n---\n\n```sh\n---\n```\n\n---\n\nc\n')
@@ -101,6 +102,60 @@ test('console: プロンプトとエラー', () => {
   assert.match(s, /<span class="hl-prompt">\$ <\/span><span class="hl-cmd">terraform apply<\/span>/)
   assert.match(s, /<span class="hl-err">Error: boom<\/span>/)
   assert.doesNotMatch(s, /data-lang/)
+})
+
+test('diff: 追加・削除・hunk・ファイルヘッダを行ごとに色分けし、!! も効く', () => {
+  const code = ['--- a/x.ts', '+++ b/x.ts', '@@ -1,2 +1,2 @@', ' keep', '-old', '+new', '!! +mark'].join('\n')
+  const s = highlight(code, 'diff')
+  assert.match(s, /<span class="hl-meta">--- a\/x.ts<\/span>/)
+  assert.match(s, /<span class="hl-meta">\+\+\+ b\/x.ts<\/span>/)
+  assert.match(s, /<span class="hl-hunk">@@ -1,2 \+1,2 @@<\/span>/)
+  assert.match(s, /\n keep\n/)
+  assert.match(s, /<span class="hl-del">-old<\/span>/)
+  assert.match(s, /<span class="hl-add">\+new<\/span>/)
+  assert.match(s, /<span class="hl-mark"><span class="hl-add">\+mark<\/span><\/span>/)
+  // フェンス内の --- はスライド区切りにならない
+  assert.equal(parse('```diff\n--- a\n+++ b\n```\n').sections.length, 1)
+})
+
+test('ハイライト: yaml / python / go / rust / html / css', () => {
+  const yaml = highlight('name: "app" # c\nport: 8080\nenabled: true\n- &base x', 'yml')
+  assert.match(yaml, /<span class="hl-t">name<\/span>: <span class="hl-s">&quot;app&quot;<\/span> <span class="hl-c"># c<\/span>/)
+  assert.match(yaml, /<span class="hl-n">8080<\/span>/)
+  assert.match(yaml, /<span class="hl-n">true<\/span>/)
+  assert.match(yaml, /<span class="hl-i">&amp;base<\/span>/)
+
+  const py = highlight('@app.get\ndef f(self):\n    return None  # c\nx = f"{a}"', 'python')
+  assert.match(py, /<span class="hl-i">@app.get<\/span>/)
+  assert.match(py, /<span class="hl-k">def<\/span> <span class="hl-f">f<\/span>\(<span class="hl-i">self<\/span>\)/)
+  assert.match(py, /<span class="hl-k">return<\/span> <span class="hl-n">None<\/span>  <span class="hl-c"># c<\/span>/)
+  assert.match(py, /<span class="hl-s">f&quot;\{a\}&quot;<\/span>/)
+
+  const go = highlight('func main() {\n\tvar n int = 1 // c\n\tfmt.Println(nil)\n}', 'go')
+  assert.match(go, /<span class="hl-k">func<\/span> <span class="hl-f">main<\/span>/)
+  assert.match(go, /<span class="hl-k">var<\/span> n <span class="hl-t">int<\/span> = <span class="hl-n">1<\/span> <span class="hl-c">\/\/ c<\/span>/)
+  assert.match(go, /<span class="hl-f">Println<\/span>\(<span class="hl-n">nil<\/span>\)/)
+
+  const rs = highlight("#[derive(Debug)]\nfn f<'a>(s: &'a str) -> u32 {\n    println!(\"{}\", 'x');\n}", 'rs')
+  assert.match(rs, /<span class="hl-i">#\[derive\(Debug\)\]<\/span>/)
+  assert.match(rs, /<span class="hl-k">fn<\/span> <span class="hl-f">f<\/span>&lt;<span class="hl-i">'a<\/span>&gt;/)
+  assert.match(rs, /<span class="hl-t">str<\/span>/)
+  assert.match(rs, /<span class="hl-f">println!<\/span>\(<span class="hl-s">&quot;\{\}&quot;<\/span>, <span class="hl-s">'x'<\/span>\)/)
+
+  const html = highlight('<!-- c -->\n<a href="/x" hidden>A &amp; B</a>', 'html')
+  assert.match(html, /<span class="hl-c">&lt;!-- c --&gt;<\/span>/)
+  assert.match(
+    html,
+    /<span class="hl-k">&lt;a<\/span> <span class="hl-t">href<\/span>=<span class="hl-s">&quot;\/x&quot;<\/span> <span class="hl-t">hidden<\/span><span class="hl-k">&gt;<\/span>A <span class="hl-n">&amp;amp;<\/span> B<span class="hl-k">&lt;\/a<\/span><span class="hl-k">&gt;<\/span>/,
+  )
+  assert.match(highlight('<?xml version="1.0"?>', 'xml'), /<span class="hl-k">&lt;\?xml<\/span>.*<span class="hl-k">\?&gt;<\/span>/)
+
+  const css = highlight('@media (min-width: 600px) {\n  a:hover { color: #fff !important; }\n  .box { margin: 0 auto; }\n}', 'css')
+  assert.match(css, /<span class="hl-k">@media<\/span>/)
+  assert.match(css, /<span class="hl-t">min-width<\/span>: <span class="hl-n">600px<\/span>/)
+  assert.match(css, /a<span class="hl-f">:hover<\/span>/)
+  assert.match(css, /<span class="hl-t">color<\/span>: <span class="hl-n">#fff<\/span> <span class="hl-k">!important<\/span>/)
+  assert.match(css, /<span class="hl-f">\.box<\/span>/)
 })
 
 test('::http:: をパースする（method 省略は GET・url 必須）', () => {
