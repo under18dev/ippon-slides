@@ -79,16 +79,18 @@
     openZoom(box)
   }
 
-  // serve 中に Markdown が書き換わったら、ページを読み込み直さずに最新のデッキを取ってくる
-  async function fetchDeck(): Promise<Document | null> {
+  // serve 中に Markdown が書き換わったら、ページを読み込み直さずに最新のデッキを取ってくる。
+  // 保存が続いて取得が重なったら、最後に始めたものだけを使う（古い応答で新しい内容を上書きしない）
+  let fetchSeq = 0
+  async function fetchDeck(): Promise<Document | null | 'stale'> {
+    const seq = ++fetchSeq
+    let doc: Document | null = null
     try {
       const res = await fetch(location.href, { cache: 'no-store' })
-      if (!res.ok) return null
-      const doc = new DOMParser().parseFromString(await res.text(), 'text/html')
-      return doc.querySelector('#deck .slide') ? doc : null
-    } catch {
-      return null
-    }
+      if (res.ok) doc = new DOMParser().parseFromString(await res.text(), 'text/html')
+    } catch {}
+    if (seq !== fetchSeq) return 'stale'
+    return doc && doc.querySelector('#deck .slide') ? doc : null
   }
   const freshSlides = (doc: Document) => Array.from(doc.querySelectorAll<HTMLElement>('#deck .slide'))
   // --css を書き換えたときのために <style> も差し替える
@@ -595,6 +597,7 @@
 
   async function hotReload(): Promise<void> {
     const doc = await fetchDeck()
+    if (doc === 'stale') return
     if (!doc) return location.reload()
     const fresh = freshSlides(doc)
     const next = fresh.map((s, i) => {
@@ -614,16 +617,18 @@
     const notes = doc.getElementById('notes')
     if (notes) $('notes').textContent = notes.textContent
 
-    // 一覧は作り直す
-    overview.textContent = ''
-    ovItems = null
-    if (ovOpen) openOverview()
-
+    // 表示中のスライドが消えたら最後のスライドに合わせる（一覧を開き直す前に）
     const n = clamp(idx)
     if (n !== idx) {
       idx = n
       history.replaceState(null, '', '#' + (idx + 1))
     }
+
+    // 一覧は作り直す
+    overview.textContent = ''
+    ovItems = null
+    if (ovOpen) openOverview()
+
     render()
     // 差し替えたスライドのフェードインは飛ばす（ちらつかせない）
     for (const el of replaced) el.getAnimations().forEach((a) => a.finish())
@@ -753,6 +758,7 @@
     // 本番ウィンドウがホットリロードしたら、こちらも最新のスライドとノートを取り直す
     async function reload(): Promise<void> {
       const doc = await fetchDeck()
+      if (doc === 'stale') return
       if (!doc) return location.reload()
       slides = freshSlides(doc)
       total = slides.length
