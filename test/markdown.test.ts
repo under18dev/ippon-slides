@@ -27,6 +27,13 @@ test('bg=white は light クラスも付ける', () => {
   assert.match(s, /class="slide center light"/)
 })
 
+test('bg=constructor などの継承プロパティ名はそのまま色名として使う', () => {
+  for (const name of ['constructor', '__proto__', 'toString']) {
+    const [s = ''] = parse(`::bg=${name}::\n\nx\n`).sections
+    assert.match(s, new RegExp(`style="background:${name};"`))
+  }
+})
+
 test('知らない指示はただの段落', () => {
   const [s = ''] = parse('::nope::\n\nx\n').sections
   assert.match(s, /<p>::nope::<\/p>/)

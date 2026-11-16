@@ -86,8 +86,9 @@ export function parseArgs(argv: string[]): Options {
     let v: string | undefined
     const eq = a.match(/^(--[^=]+)=(.*)$/)
     if (eq) [, a, v] = eq as [string, string, string]
-    const flag = FLAGS[a]
-    const value = VALUES[a]
+    // constructor などの名前のファイルを継承プロパティと取り違えないよう、自前のキーだけを見る
+    const flag = Object.hasOwn(FLAGS, a) ? FLAGS[a] : undefined
+    const value = Object.hasOwn(VALUES, a) ? VALUES[a] : undefined
     if (flag) opts[flag] = true
     else if (value) {
       if (v === undefined) v = argv[++i]

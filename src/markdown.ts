@@ -427,7 +427,8 @@ export function slide(src: string, http?: HttpMap): { section: string; note: str
       const size = tok.match(/^size=(.+)$/)
       if (bg) {
         const name = bg[1]!
-        style += `background:${esc(BG[name] || name)};`
+        // bg=constructor などで継承プロパティを拾わないよう、自前のキーだけを見る
+        style += `background:${esc((Object.hasOwn(BG, name) && BG[name]) || name)};`
         if (name === 'white') classes.push('light')
       } else if (size) style += `--slide-size:${esc(size[1]!)};`
       else classes.push(tok)
