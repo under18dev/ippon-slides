@@ -62,6 +62,18 @@ test('画像の相対パスは出力先から見たパスに書き換える', ()
   assert.match(html, /<img src="https:\/\/e.x\/b.png"/)
 })
 
+test('--inline で画像を data URI で埋め込む', () => {
+  writeFileSync(join(dir, 'img/c.png'), 'png')
+  writeFileSync(join(dir, 'inline.md'), '![c](img/c.png)\n\n---\n\n![d](img/none.png)\n\n---\n\n![e](https://e.x/e.png)\n')
+  const out = run('inline.md', '--inline', '-o', 'dist/')
+  const html = readFileSync(join(dir, 'dist/inline.html'), 'utf8')
+  assert.match(html, /<img src="data:image\/png;base64,cG5n"/)
+  // 読めない画像はパスのまま残して知らせる
+  assert.match(html, /<img src="..\/img\/none.png"/)
+  assert.match(out, /埋め込めなかった画像.*img\/none\.png/)
+  assert.match(html, /<img src="https:\/\/e.x\/e.png"/)
+})
+
 test('--css を埋め込む', () => {
   writeFileSync(join(dir, 'x.css'), ':root { --slide-accent: hotpink; }')
   run('build', 'slide.md', '--css', 'x.css', '-o', 'css.html')

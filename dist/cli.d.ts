@@ -7,6 +7,7 @@ export interface Options {
     help?: boolean;
     version?: boolean;
     noFetch?: boolean;
+    inline?: boolean;
     force?: boolean;
     output?: string;
     css?: string;
