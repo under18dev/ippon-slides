@@ -8,7 +8,7 @@ import { defineCollection } from 'astro:content'
 import type { Loader } from 'astro/loaders'
 import { docsSchema } from '@astrojs/starlight/schema'
 import { readFile, readdir } from 'node:fs/promises'
-import { relative } from 'node:path'
+import { posix, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const REPO = 'https://github.com/under18dev/ippon-slides/blob/main/'
@@ -22,13 +22,17 @@ const LOCALES = [
 /** docs/syntax.md → docs/syntax、docs/README.md → docs（= ドキュメントのトップ） */
 const slugOf = (file: string) => (file === 'README.md' ? 'docs' : `docs/${file.replace(/\.md$/, '')}`)
 
-/** Markdown 内の相対リンクをサイトの URL にする（他の .md はサイト内、それ以外は GitHub） */
-function rewriteLinks(md: string, prefix: string): string {
-  return md.replace(/\]\((?!https?:|#|mailto:)([^)\s]+?)(#[^)\s]*)?\)/g, (all, path: string, hash = '') => {
-    // README.md（リポジトリのトップ）は GitHub へ
-    if (/^(\.\.\/)+README\.md$/.test(path)) return `](${REPO}README.md${hash})`
-    if (/^[\w-]+\.md$/.test(path)) return `](/${prefix}${slugOf(path)}/${hash})`
-    return all
+/**
+ * Markdown 内の .md への相対リンクを、書かれているファイルの場所から解決してサイトの URL にする。
+ * docs/ か docs/en/ の .md ならサイト内、それ以外（リポジトリの README.md など）は GitHub へ。
+ * （docs/en/README.md の `../README.md` は日本語版の docs/README.md、`../../README.md` はリポジトリの README）
+ */
+function rewriteLinks(md: string, dir: string): string {
+  return md.replace(/\]\((?!https?:|#|mailto:)([^)\s]+?\.md)(#[^)\s]*)?\)/g, (_, path: string, hash = '') => {
+    const target = posix.normalize(posix.join(dir, path))
+    const locale = LOCALES.find((l) => posix.dirname(target) + '/' === l.dir)
+    if (locale) return `](/${locale.prefix}${slugOf(posix.basename(target))}/${hash})`
+    return `](${REPO}${target}${hash})`
   })
 }
 
@@ -52,7 +56,7 @@ function repoDocs(): Loader {
               logger.warn(`${dir}${file} に # 見出しが無いので飛ばします`)
               continue
             }
-            const body = rewriteLinks(src.replace(h1[0], ''), prefix)
+            const body = rewriteLinks(src.replace(h1[0], ''), dir)
             // 最初の段落を description に（検索結果や OGP 用）
             const lead = body
               .split(/\n\n+/)
