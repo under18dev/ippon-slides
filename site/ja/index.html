@@ -77,6 +77,16 @@
         },
         {
           "@type": "Question",
+          "name": "URL を共有したときに表紙を出せますか？",
+          "acceptedAnswer": { "@type": "Answer", "text": "はい。ippon ogp slide.md で表紙を 1200×630 の slide.png にします。frontmatter に公開先の url: を書くと、ビルドした HTML の og:image にその画像が入り、X やブログに URL を貼ったときに表紙が出ます。" }
+        },
+        {
+          "@type": "Question",
+          "name": "表示中のスライドを AI エージェントに直してもらえますか？",
+          "acceptedAnswer": { "@type": "Answer", "text": "はい。ippon serve 中に ippon current を実行すると、ブラウザで表示中のスライド・Markdown 上の行範囲・デッキで選択中の文字列が出ます。ippon skills init でスキルを置けば、Claude Code や Codex などのコーディングエージェントが使ってくれます。" }
+        },
+        {
+          "@type": "Question",
           "name": "無料でオープンソースですか？",
           "acceptedAnswer": { "@type": "Answer", "text": "はい。MIT ライセンスで npm に公開しています。ランタイム依存はゼロです。" }
         }
@@ -134,14 +144,18 @@
     <h2>全部、1 ファイルに</h2>
     <p class="sub">厳選した機能だけ。ひとつひとつが居場所を持っています。</p>
     <div class="grid">
-      <div class="item"><h3>単一の自己完結 HTML</h3><p>CSS も JS もインライン。メールでも Git でもオフラインでも開ける 1 ファイル。ビルドサーバも CDN も不要。</p></div>
+      <div class="item"><h3>単一の自己完結 HTML</h3><p>CSS も JS もインライン。メールでも Git でもオフラインでも開ける 1 ファイル。ビルドサーバも CDN も不要。<code>--inline</code> なら画像まで埋め込めます。</p></div>
       <div class="item"><h3>ランタイム依存ゼロ</h3><p>ビルドに使うのは TypeScript だけ。PDF 出力はブラウザを同梱せずローカルの Chrome を直接駆動。</p></div>
-      <div class="item"><h3>16:9 PDF 出力</h3><p><code>--pdf</code> でフォントも色もそのままの 16:9 PDF を生成。</p></div>
-      <div class="item"><h3>スマホがリモコン</h3><p><code>ippon serve</code> が QR を表示。読み取ればページ送り・タイマー・発表者ノートを手元で。LAN 上で動き WebSocket 不要。</p></div>
+      <div class="item"><h3>PDF と共有用の画像</h3><p><code>--pdf</code> でフォントも色もそのままの 16:9 PDF。<code>ippon ogp</code> で表紙を 1200×630 の画像にし、URL を貼ったときに表紙が出ます。</p></div>
+      <div class="item"><h3>スマホがリモコン</h3><p><code>ippon serve</code> が QR を表示。読み取ればページ送り・タイマー・発表者ノートを手元で。LAN 上で動き WebSocket 不要。保存すると、開いているデッキがちらつかずに最新になります。</p></div>
       <div class="item"><h3>HTTP プレイグラウンド</h3><p><code>::http::</code> で実レスポンス（ステータス・時間・ヘッダー・整形 JSON）をビルド時に焼き込み（CORS 無関係）＋ライブ再送信。</p></div>
       <div class="item"><h3>拡大とスポットライト</h3><p>画像やコードをクリックで拡大。行をクリックすると周囲が暗くなり 1 行だけ強調。コード解説に最適。</p></div>
       <div class="item"><h3>発表者ビュー</h3><p><code>p</code> で現在・次のスライド、発表者ノート、タイマーを別ウィンドウに。両画面は同期。</p></div>
       <div class="item"><h3>テーマ変更</h3><p><code>--css</code> で少数の CSS 変数を上書き。既定のままですぐ発表に臨めます。</p></div>
+      <div class="item"><h3>背景画像と 2 カラム</h3><p><code>::background::</code> でスライドの背景に写真を。2 カラムなら右半分だけにも敷けます。<code>brightness</code> と <code>opacity</code> で暗さと濃さを調整。</p></div>
+      <div class="item"><h3>コードのハイライト</h3><p>ts・js・sh・json・hcl・yaml・py・go・rust・html・css・diff。<code>!! </code> で 1 行を強調、diff は追加と削除を色分け。</p></div>
+      <div class="item"><h3>スマホで縦に読める</h3><p>スマホを縦に持つと、全スライドが縦に並んでスクロールで読めます。横にすればそのまま発表に戻ります。</p></div>
+      <div class="item"><h3>エージェントと直す</h3><p>デッキで文字を選んで「ここ直して」と頼むだけ。<code>ippon current</code> が表示中のスライドと行を渡し、<code>ippon skills init</code> が使い方を教えます。</p></div>
     </div>
   </div>
 </section>
@@ -185,7 +199,7 @@ npx ippon-slides build slide.md --pdf</pre>
 <section id="docs">
   <div class="wrap">
     <h2>Markdown 記法</h2>
-    <p class="sub">ふつうの Markdown に、スライド用の記法を少しだけ。詳細は <a href="https://github.com/under18dev/ippon-slides/tree/main/docs">ドキュメント</a>。</p>
+    <p class="sub">ふつうの Markdown に、スライド用の記法を少しだけ。詳細と、すべての記法が従う決まりは <a href="https://github.com/under18dev/ippon-slides/blob/main/docs/syntax.md">ドキュメント</a> に。</p>
     <table>
       <thead><tr><th>記法</th><th>意味</th></tr></thead>
       <tbody>
@@ -193,12 +207,29 @@ npx ippon-slides build slide.md --pdf</pre>
         <tr><td><code>::center::</code></td><td>中央寄せの大きな 1 メッセージ。</td></tr>
         <tr><td><code>::title::</code></td><td>表紙。最後の行が下に沈む。</td></tr>
         <tr><td><code>::bg=blue::</code> / <code>::size=1.5::</code></td><td>背景色・文字サイズ倍率。</td></tr>
-        <tr><td><code>::right::</code></td><td>2 カラム（<code>left-wide</code> / <code>right-wide</code> で 1.4:1）。</td></tr>
+        <tr><td><code>::right::</code></td><td>2 カラム（<code>left-wide</code> / <code>right-wide</code> で 1.4:1、<code>center</code> で上下中央揃え）。</td></tr>
+        <tr><td><code>::background path=… brightness=0.5::</code></td><td>背景画像。<code>::right::</code> の後ろなら右半分だけ。</td></tr>
+        <tr><td><code>::qr url=…::</code></td><td>URL の QR コード（<code>caption</code> で URL も表示）。</td></tr>
         <tr><td><code>::note::</code></td><td>以降は発表者ノート（発表者ビュー・スマホのみ）。</td></tr>
         <tr><td><code>::http method=GET url=…::</code></td><td>HTTP リクエストのプレイグラウンド。</td></tr>
+        <tr><td><code>-# </code>（段落の頭）</td><td>小さい注釈。</td></tr>
         <tr><td><code>!! </code>（行頭）</td><td>コードのその行を強調。</td></tr>
       </tbody>
     </table>
+  </div>
+</section>
+
+<section id="http">
+  <div class="wrap cols">
+    <div>
+      <h2>スライドに、生の HTTP レスポンスを</h2>
+      <p class="sub">API の発表やデモに。ステータス・レスポンスタイム・ヘッダー・整形した JSON を、ビルド時に Node で取得して焼き込みます。CORS に左右されず、PDF にもそのまま出ます。「再送信」でブラウザからライブで叩き直せます。</p>
+      <p class="muted">結果はもう手元にあるので、本番でデモが失敗しません。</p>
+    </div>
+    <div>
+<pre><span class="k">::http</span> method=GET \
+  url=https://api.github.com/repos/under18dev/ippon-slides<span class="k">::</span></pre>
+    </div>
   </div>
 </section>
 
@@ -211,7 +242,26 @@ npx ippon-slides <span class="a">serve</span> slide.md</pre>
     <div>
       <h2>スマホをリモコンに</h2>
       <p class="sub"><code>ippon serve</code> が QR を表示。読み取るとスマホがリモコンになり、ページ送り・タイマー・発表者ノートを手元で操作できます。通信は LAN 上の SSE だけ（WebSocket も外部サービスもなし）。ペアリング URL はランダムトークンで保護されます。</p>
+      <p class="muted">Markdown を保存すると、開いているデッキは変わったスライドだけを差し替えます。表示中のスライドもそのまま。</p>
     </div>
+  </div>
+</section>
+
+<section id="cli">
+  <div class="wrap">
+    <h2>CLI</h2>
+    <p class="sub">コマンドは少しだけ、既定値はそのまま使える。</p>
+    <table>
+      <tbody>
+        <tr><td><code>ippon build &lt;in.md&gt; --html --pdf -o dist/</code></td><td>HTML と PDF を作る。</td></tr>
+        <tr><td><code>ippon serve &lt;in.md&gt; [-p 7000]</code></td><td>ローカルで配信し、スマホをリモコンに（QR）。</td></tr>
+        <tr><td><code>ippon init [file]</code></td><td>サンプルのデッキを作る。</td></tr>
+        <tr><td><code>ippon build … -w</code></td><td>保存するたびに作り直す。</td></tr>
+        <tr><td><code>ippon build … --inline</code></td><td>画像を HTML に埋め込む。</td></tr>
+        <tr><td><code>ippon ogp &lt;in.md&gt;</code></td><td>表紙を 1200×630 の共有用画像にする。</td></tr>
+        <tr><td><code>ippon current</code> / <code>ippon skills init</code></td><td>表示中のスライドをコーディングエージェントに渡す。</td></tr>
+      </tbody>
+    </table>
   </div>
 </section>
 
@@ -222,6 +272,8 @@ npx ippon-slides <span class="a">serve</span> slide.md</pre>
     <details><summary>出力はオフラインで動く？</summary><p>はい。CSS/JS 全部入りの 1 ファイルなので、ネットワークもサーバーも依存もなしで、どのブラウザでも開けます。</p></details>
     <details><summary>PDF に書き出せる？</summary><p>はい、<code>--pdf</code> で。ローカルの Chrome / Chromium / Edge を使って 16:9 PDF を印刷するので、重いものを同梱しません。</p></details>
     <details><summary>スマホから操作できる？</summary><p>はい。<code>ippon serve</code> が QR を表示。読み取ればページ送り・タイマー・発表者ノートを LAN 上の SSE で同期して操作できます。</p></details>
+    <details><summary>URL を貼ったときに表紙を出せる？</summary><p>はい。<code>ippon ogp slide.md</code> で表紙を 1200×630 の <code>slide.png</code> にします。frontmatter に公開先の <code>url:</code> を書くと、ビルドした HTML の <code>og:image</code> にその画像が入ります。</p></details>
+    <details><summary>表示中のスライドを AI エージェントに直してもらえる？</summary><p>はい。<code>ippon serve</code> 中に <code>ippon current</code> を実行すると、表示中のスライド・Markdown 上の行範囲・選択中の文字列が出ます。<code>ippon skills init</code> でスキルを置けば、Claude Code や Codex に「ここ直して」と頼むだけで使ってくれます。</p></details>
     <details><summary>無料でオープンソース？</summary><p>はい。MIT ライセンスで npm に公開、ランタイム依存はゼロです。</p></details>
   </div>
 </section>

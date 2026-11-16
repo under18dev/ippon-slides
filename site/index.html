@@ -78,6 +78,16 @@
         },
         {
           "@type": "Question",
+          "name": "Can links to my deck show the title slide?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. Run ippon ogp slide.md to save the cover slide as a 1200×630 slide.png. Add the deck's public url: to the frontmatter and the built HTML gets an og:image pointing to that image, so X and blogs show the title slide." }
+        },
+        {
+          "@type": "Question",
+          "name": "Can a coding agent edit the slide I'm looking at?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. While ippon serve is running, ippon current prints the slide shown in the browser, its line range in the Markdown and the text selected in the deck. ippon skills init installs a skill so coding agents such as Claude Code or Codex use it when you ask them to fix something." }
+        },
+        {
+          "@type": "Question",
           "name": "Is ippon free and open source?",
           "acceptedAnswer": { "@type": "Answer", "text": "Yes. ippon-slides is MIT-licensed and published on npm. It has zero runtime dependencies; only TypeScript is used to build it." }
         },
@@ -140,14 +150,18 @@
     <h2>Everything, in one file</h2>
     <p class="sub">A focused feature set — each one earns its place.</p>
     <div class="grid">
-      <div class="item"><h3>Single self-contained HTML</h3><p>CSS and JS are inlined. One file you can email, commit, or open offline — no build server, no CDN.</p></div>
+      <div class="item"><h3>Single self-contained HTML</h3><p>CSS and JS are inlined. One file you can email, commit, or open offline — no build server, no CDN. Add <code>--inline</code> to embed the images too.</p></div>
       <div class="item"><h3>Zero runtime dependencies</h3><p>Only TypeScript is used to build it. PDF export drives a local Chrome directly instead of bundling a browser.</p></div>
-      <div class="item"><h3>16:9 PDF export</h3><p><code>--pdf</code> renders a crisp 16:9 PDF from your deck, fonts and colors intact.</p></div>
-      <div class="item"><h3>Phone remote</h3><p><code>ippon serve</code> shows a QR code. Scan it to advance slides, reset the timer and read speaker notes — over your LAN, no WebSocket.</p></div>
+      <div class="item"><h3>PDF and a share image</h3><p><code>--pdf</code> renders a crisp 16:9 PDF. <code>ippon ogp</code> turns the cover into a 1200×630 image, so links to your deck show the title slide.</p></div>
+      <div class="item"><h3>Phone remote</h3><p><code>ippon serve</code> shows a QR code. Scan it to advance slides, reset the timer and read speaker notes — over your LAN, no WebSocket. Save the file and the open deck updates in place, without a flicker.</p></div>
       <div class="item"><h3>Live HTTP playground</h3><p><code>::http::</code> embeds a real request and response — status, time, headers, pretty JSON — baked at build time (CORS-free) with a live re-send button.</p></div>
       <div class="item"><h3>Spotlight and zoom</h3><p>Click an image or a code block to zoom. Click a line to spotlight it while the rest dims — made for walking through code.</p></div>
       <div class="item"><h3>Presenter view</h3><p>Press <code>p</code> for current and next slide, speaker notes and a timer in a second window, kept in sync.</p></div>
       <div class="item"><h3>Themeable</h3><p>Override a few CSS variables with <code>--css</code>. Start with sensible defaults and present immediately.</p></div>
+      <div class="item"><h3>Background images and columns</h3><p><code>::background::</code> puts a photo behind the slide, or across the right half of a two-column slide. Dim it with <code>brightness</code> and <code>opacity</code>.</p></div>
+      <div class="item"><h3>Code highlighting</h3><p>ts, js, sh, json, hcl, yaml, py, go, rust, html, css and diff. <code>!! </code> marks a line; diff colors added and removed lines.</p></div>
+      <div class="item"><h3>Readable on a phone</h3><p>Hold a phone upright and the deck becomes a vertical page you can scroll through. Turn it sideways to present again.</p></div>
+      <div class="item"><h3>Edit with a coding agent</h3><p>Select text in the deck and ask your agent to fix it. <code>ippon current</code> tells it which slide and which lines; <code>ippon skills init</code> teaches it how.</p></div>
     </div>
   </div>
 </section>
@@ -191,7 +205,7 @@ per slide</pre>
 <section id="docs">
   <div class="wrap">
     <h2>Markdown syntax</h2>
-    <p class="sub">Plain Markdown, plus a few slide-specific directives. Full reference in the <a href="https://github.com/under18dev/ippon-slides/tree/main/docs">docs</a>.</p>
+    <p class="sub">Plain Markdown, plus a few slide-specific directives. Full reference in the <a href="https://github.com/under18dev/ippon-slides/blob/main/docs/syntax.md">docs</a>, including the rules every directive follows.</p>
     <table>
       <thead><tr><th>Syntax</th><th>What it does</th></tr></thead>
       <tbody>
@@ -199,9 +213,12 @@ per slide</pre>
         <tr><td><code>::center::</code></td><td>Big, centered one-message slide.</td></tr>
         <tr><td><code>::title::</code></td><td>Title slide; the last line sinks to the bottom.</td></tr>
         <tr><td><code>::bg=blue::</code> / <code>::size=1.5::</code></td><td>Background color and text-size multiplier.</td></tr>
-        <tr><td><code>::right::</code></td><td>Start a second column (<code>left-wide</code> / <code>right-wide</code> for 1.4:1).</td></tr>
+        <tr><td><code>::right::</code></td><td>Start a second column (<code>left-wide</code> / <code>right-wide</code> for 1.4:1, <code>center</code> to center vertically).</td></tr>
+        <tr><td><code>::background path=… brightness=0.5::</code></td><td>Background image. After <code>::right::</code>, it covers the right half.</td></tr>
+        <tr><td><code>::qr url=…::</code></td><td>QR code for a URL (add <code>caption</code> to print the URL).</td></tr>
         <tr><td><code>::note::</code></td><td>Everything after becomes a speaker note (presenter &amp; phone only).</td></tr>
         <tr><td><code>::http method=GET url=…::</code></td><td>Embed a live HTTP request playground.</td></tr>
+        <tr><td><code>-# </code> (paragraph prefix)</td><td>Small footnote.</td></tr>
         <tr><td><code>!! </code> (line prefix)</td><td>Highlight that line inside a code block.</td></tr>
       </tbody>
     </table>
@@ -231,6 +248,7 @@ npx ippon-slides <span class="a">serve</span> slide.md</pre>
     <div>
       <h2>Turn your phone into the remote</h2>
       <p class="sub"><code>ippon serve</code> prints a QR code. Scan it and your phone becomes a remote: advance slides, reset the timer, and read your speaker notes in your hand. It syncs over Server-Sent Events on your local network — no WebSocket, no external service — and the pairing URL is protected by a random token.</p>
+      <p class="muted">Save the Markdown and the open deck swaps in only the slides that changed — you stay on the same slide.</p>
     </div>
   </div>
 </section>
@@ -238,13 +256,16 @@ npx ippon-slides <span class="a">serve</span> slide.md</pre>
 <section id="cli">
   <div class="wrap">
     <h2>CLI</h2>
-    <p class="sub">Three commands, sensible defaults.</p>
+    <p class="sub">A few commands, sensible defaults.</p>
     <table>
       <tbody>
         <tr><td><code>ippon build &lt;in.md&gt; --html --pdf -o dist/</code></td><td>Build HTML and/or PDF.</td></tr>
         <tr><td><code>ippon serve &lt;in.md&gt; [-p 7000]</code></td><td>Serve locally + phone remote (QR).</td></tr>
         <tr><td><code>ippon init [file]</code></td><td>Write a sample deck.</td></tr>
         <tr><td><code>ippon build … -w</code></td><td>Watch and rebuild on save.</td></tr>
+        <tr><td><code>ippon build … --inline</code></td><td>Embed images into the HTML.</td></tr>
+        <tr><td><code>ippon ogp &lt;in.md&gt;</code></td><td>Turn the cover into a 1200×630 share image.</td></tr>
+        <tr><td><code>ippon current</code> / <code>ippon skills init</code></td><td>Hand the slide you are looking at to a coding agent.</td></tr>
       </tbody>
     </table>
   </div>
@@ -257,6 +278,8 @@ npx ippon-slides <span class="a">serve</span> slide.md</pre>
     <details><summary>Does the output work offline?</summary><p>Yes — one HTML file with all CSS and JS inlined. No network, no server, no runtime dependencies. It opens in any browser, even years later.</p></details>
     <details><summary>Can I export to PDF?</summary><p>Yes, with <code>--pdf</code>. ippon drives a locally installed Chrome, Chromium or Edge to print a 16:9 PDF, so nothing heavy is bundled.</p></details>
     <details><summary>Can I control slides from my phone?</summary><p>Yes. <code>ippon serve</code> shows a QR code; scanning it gives you a remote for navigation, the timer and your speaker notes, synced over SSE on your LAN.</p></details>
+    <details><summary>Can links to my deck show the title slide?</summary><p>Yes. <code>ippon ogp slide.md</code> saves the cover as a 1200×630 <code>slide.png</code>. Put the deck's public <code>url:</code> in the frontmatter and the built HTML gets an <code>og:image</code> pointing to it.</p></details>
+    <details><summary>Can a coding agent edit the slide I'm looking at?</summary><p>Yes. While <code>ippon serve</code> is running, <code>ippon current</code> prints the current slide, its line range in the Markdown and the text you selected. <code>ippon skills init</code> installs a skill so Claude Code or Codex uses it when you say “fix this”.</p></details>
     <details><summary>Is it free and open source?</summary><p>Yes — MIT licensed, published on npm, with zero runtime dependencies.</p></details>
     <details><summary>What makes it different from other Markdown slide tools?</summary><p>One message per slide (the Takahashi method), a single self-contained HTML file, zero dependencies, plus a phone remote, a live HTTP playground, click-to-zoom with per-line spotlight and a presenter view — no cloud required.</p></details>
   </div>
