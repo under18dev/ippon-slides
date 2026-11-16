@@ -158,6 +158,43 @@ test('ハイライト: yaml / python / go / rust / html / css', () => {
   assert.match(css, /<span class="hl-f">\.box<\/span>/)
 })
 
+test('ハイライト: constructor などの継承プロパティを言語名として扱わない（HTML はエスケープする）', () => {
+  const evil = '<img src=x onerror=alert(1)>'
+  for (const lang of ['constructor', '__proto__', 'toString', 'hasOwnProperty', 'valueOf']) {
+    assert.equal(highlight(evil, lang), '&lt;img src=x onerror=alert(1)&gt;', lang)
+    const html = parse('```' + lang + '\n' + evil + '\n```').sections[0]!
+    assert.ok(!html.includes('<img'), lang)
+  }
+})
+
+test('ハイライト: 長い 1 行でも行の長さに比例する時間で終わる', () => {
+  const yaml = 'description: ' + 'some normal words '.repeat(3000)
+  const lines: [string, string][] = [
+    [yaml, 'yaml'],
+    ['- a ' + ' '.repeat(20000) + 'b', 'yaml'],
+    ['a: ' + '.'.repeat(20000), 'yaml'],
+    ['a: ' + 'b:c '.repeat(10000), 'css'],
+    ['a{b:c}'.repeat(5000), 'css'],
+  ]
+  for (const lang of ['yaml', 'py', 'go', 'rust', 'css', 'html', 'diff', 'js', 'sh', 'hcl', 'json']) {
+    lines.push(['x = ' + '1'.repeat(20000) + 'x', lang], ['a ' + 'b: c '.repeat(5000), lang])
+  }
+  for (const [line, lang] of lines) {
+    const t = performance.now()
+    highlight(line, lang)
+    const ms = performance.now() - t
+    assert.ok(ms < 200, `${lang}: ${line.slice(0, 20)}… に ${Math.round(ms)}ms`)
+  }
+  assert.match(highlight(yaml, 'yaml'), /^<span class="hl-t">description<\/span>: some normal words /)
+})
+
+test('yaml: キーは行頭・"- " の後・フロー内の { , の後だけ', () => {
+  const y = highlight('- name: x\nmap: {a: 1, b c: 2}\nnote: time: 10', 'yaml')
+  assert.match(y, /^- <span class="hl-t">name<\/span>: x/)
+  assert.match(y, /\{<span class="hl-t">a<\/span>: <span class="hl-n">1<\/span>, <span class="hl-t">b c<\/span>: <span class="hl-n">2<\/span>\}/)
+  assert.match(y, /<span class="hl-t">note<\/span>: time: <span class="hl-n">10<\/span>/)
+})
+
 test('::http:: をパースする（method 省略は GET・url 必須）', () => {
   assert.deepEqual(parseHttp('::http method=POST url=https://e.x/api::'), { method: 'POST', url: 'https://e.x/api' })
   assert.deepEqual(parseHttp('::http url=https://e.x/api::'), { method: 'GET', url: 'https://e.x/api' })

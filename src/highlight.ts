@@ -4,13 +4,16 @@
 export const esc = (s: string): string =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
-type Rule = [RegExp, string | null]
+/** [正規表現, クラス, その位置で試してよいか（省略時は常に試す）] */
+type Rule = [RegExp, string | null, ((line: string, at: number) => boolean)?]
 
 function tokenize(line: string, rules: Rule[]): string {
   let out = ''
   let rest = line
   outer: while (rest.length) {
-    for (const [re, cls] of rules) {
+    const at = line.length - rest.length
+    for (const [re, cls, ok] of rules) {
+      if (ok && !ok(line, at)) continue
       const m = rest.match(re)
       if (m && m[0].length) {
         out += cls ? `<span class="${cls}">${esc(m[0])}</span>` : esc(m[0])
@@ -18,10 +21,20 @@ function tokenize(line: string, rules: Rule[]): string {
         continue outer
       }
     }
-    out += esc(rest[0]!)
-    rest = rest.slice(1)
+    // どのルールにも合わなければ、英数字や空白の並びはまとめて読み飛ばす。
+    // 1 文字ずつ進めると、長い数字列などで同じルールを何度も試して行の長さの二乗かかる
+    const skip = rest.match(/^(?:\w+|\s+)/)?.[0] ?? rest[0]!
+    out += esc(skip)
+    rest = rest.slice(skip.length)
   }
   return out
+}
+
+/** at の直前（空白を除く）の文字。行頭なら ''（'{,'.includes('') は true なので行頭も「直後」に含まれる） */
+function prevChar(line: string, at: number): string {
+  let i = at - 1
+  while (i >= 0 && (line[i] === ' ' || line[i] === '\t')) i--
+  return i < 0 ? '' : line[i]!
 }
 
 const HCL_KEYWORDS =
@@ -78,7 +91,9 @@ const YAML: Rule[] = [
   [/^(?:---|\.\.\.)(?=\s*$)/, 'hl-k'],
   [/^"(?:[^"\\]|\\.)*"(?=\s*:(?:\s|$))/, 'hl-t'],
   [/^'[^']*'(?=\s*:(?:\s|$))/, 'hl-t'],
-  [/^[\w.-][\w .-]*?(?=\s*:(?:\s|$))/, 'hl-t'],
+  // キーは行頭（インデントと "- " の後）か { , の直後でだけ探す。
+  // 値の途中で毎回 : を探すと、長いプレーンスカラーで行の長さの二乗かかる
+  [/^[\w.-]+(?:[ \t]+[\w.-]+)*(?=[ \t]*:(?:\s|$))/, 'hl-t', (line, at) => '{,'.includes(prevChar(line, at))],
   [/^"(?:[^"\\]|\\.)*"/, 'hl-s'],
   [/^'[^']*'/, 'hl-s'],
   [/^[&*][\w-]+/, 'hl-i'],
@@ -87,6 +102,12 @@ const YAML: Rule[] = [
   [/^-?\d+(\.\d+)?(?=\s*(?:#|$|,|\]|\}))/, 'hl-n'],
   [/^[A-Za-z_][\w-]*/, null],
 ]
+
+/** YAML。行頭のインデントとシーケンスの "- " を外してから色分けする（その直後がキーの位置） */
+function yamlLine(line: string): string {
+  const head = line.match(/^\s*(?:-\s+)*/)![0]
+  return esc(head) + tokenize(line.slice(head.length), YAML)
+}
 
 const PY_KEYWORDS =
   'and|as|assert|async|await|break|class|continue|def|del|elif|else|except|finally|for|from|global|if|import|in|is|lambda|match|case|nonlocal|not|or|pass|raise|return|try|while|with|yield'
@@ -152,15 +173,19 @@ const RUST: Rule[] = [
   [/^[A-Za-z_]\w*/, null],
 ]
 
+/** CSS の宣言の先頭（行頭か { ; ( の直後）か */
+const cssDeclStart = (line: string, at: number): boolean => '{;('.includes(prevChar(line, at))
+
 const CSS: Rule[] = [
   [/^\/\*.*?(?:\*\/|$)/, 'hl-c'],
   [/^"(?:[^"\\]|\\.)*"/, 'hl-s'],
   [/^'(?:[^'\\]|\\.)*'/, 'hl-s'],
   [/^@[\w-]+/, 'hl-k'],
   [/^!important\b/, 'hl-k'],
-  // `color: red;` のように : の後が値ならプロパティ（`a:hover {` はセレクタ）
-  [/^-*[A-Za-z][\w-]*(?=\s*:\s*(?:[^{;()]|\([^()]*\))*[;})])/, 'hl-t'],
-  [/^-*[A-Za-z][\w-]*(?=\s*:\s+[^{]*$)/, 'hl-t'],
+  // `color: red;` のように : の後が値ならプロパティ（`a:hover {` はセレクタ）。
+  // 宣言の先頭でだけ探し、先読みも宣言の終わりで止める（長い行で二乗にならないように）
+  [/^-*[A-Za-z][\w-]*(?=\s*:(?:[^{};()]|\((?:[^()]|\([^()]*\))*\))*[;})])/, 'hl-t', cssDeclStart],
+  [/^-*[A-Za-z][\w-]*(?=\s*:\s[^{};]*$)/, 'hl-t', cssDeclStart],
   [/^#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})(?![\w-])/, 'hl-n'],
   [/^-?(?:\d+\.?\d*|\.\d+)(?:[a-z]+|%)?/, 'hl-n'],
   [/^[\w-]+(?=\()/, 'hl-f'],
@@ -219,8 +244,8 @@ const LANGS: Record<string, Rule[] | ((line: string) => string)> = {
   html: htmlLine,
   xml: htmlLine,
   svg: htmlLine,
-  yaml: YAML,
-  yml: YAML,
+  yaml: yamlLine,
+  yml: yamlLine,
   py: PY,
   python: PY,
   go: GO,
@@ -245,7 +270,9 @@ const LANGS: Record<string, Rule[] | ((line: string) => string)> = {
 }
 
 export function highlight(code: string, lang = ''): string {
-  const rules = LANGS[lang.toLowerCase()]
+  // constructor や __proto__ など継承したプロパティを言語と取り違えないよう、自前のキーだけを見る
+  const key = lang.toLowerCase()
+  const rules = Object.hasOwn(LANGS, key) ? LANGS[key] : undefined
   return code
     .split('\n')
     .map((raw) => {
