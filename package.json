@@ -1,6 +1,6 @@
 {
   "name": "ippon-slides",
-  "version": "0.1.10",
+  "version": "1.2.0",
   "description": "1 枚 1 メッセージのスライドを Markdown から作る CLI。HTML 1 ファイルと PDF を出力",
   "keywords": [
     "slides",
