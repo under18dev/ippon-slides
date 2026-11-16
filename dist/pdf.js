@@ -41,14 +41,11 @@ export function findBrowser(explicit) {
     }
     return null;
 }
-/**
- * @param html file:// URL の画像で組み立てた HTML
- * @param out  出力する PDF のパス
- */
-export async function toPdf(html, out, { browserPath } = {}) {
+/** HTML を一時ファイルに書き、ヘッドレスのブラウザに out を作らせる */
+async function headless(html, out, what, browserPath, extra) {
     const browser = findBrowser(browserPath);
     if (!browser) {
-        throw new Error('PDF の出力には Chrome / Chromium / Edge が必要です。--browser-path か環境変数 CHROME_PATH で場所を指定してください。');
+        throw new Error(`${what} の出力には Chrome / Chromium / Edge が必要です。--browser-path か環境変数 CHROME_PATH で場所を指定してください。`);
     }
     const dir = mkdtempSync(join(tmpdir(), 'ippon-'));
     const src = join(dir, 'slide.html');
@@ -61,9 +58,8 @@ export async function toPdf(html, out, { browserPath } = {}) {
             '--no-first-run',
             '--no-default-browser-check',
             `--user-data-dir=${join(dir, 'profile')}`,
-            '--no-pdf-header-footer',
             '--virtual-time-budget=3000', // Web フォントの読み込みを待つ
-            `--print-to-pdf=${out}`,
+            ...extra,
             pathToFileURL(src).href,
         ];
         const stderr = await new Promise((ok, ng) => {
@@ -74,10 +70,17 @@ export async function toPdf(html, out, { browserPath } = {}) {
             p.on('close', () => ok(err));
         });
         if (!existsSync(out) || statSync(out).size === 0) {
-            throw new Error(`PDF の出力に失敗しました（${browser}）\n${stderr.trim()}`);
+            throw new Error(`${what} の出力に失敗しました（${browser}）\n${stderr.trim()}`);
         }
     }
     finally {
         rmSync(dir, { recursive: true, force: true });
     }
+}
+/**
+ * @param html file:// URL の画像で組み立てた HTML
+ * @param out  出力する PDF のパス
+ */
+export async function toPdf(html, out, { browserPath } = {}) {
+    await headless(html, out, 'PDF', browserPath, ['--no-pdf-header-footer', `--print-to-pdf=${out}`]);
 }
