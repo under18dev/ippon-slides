@@ -74,6 +74,19 @@ test('--inline で画像を data URI で埋め込む', () => {
   assert.match(html, /<img src="https:\/\/e.x\/e.png"/)
 })
 
+test('--inline: & を含む名前・?v=1 / #id 付き・ノートの画像も埋め込む', () => {
+  writeFileSync(join(dir, 'img/r&r.png'), 'png')
+  writeFileSync(join(dir, 'img/s.svg'), '<svg/>')
+  writeFileSync(join(dir, 'inline2.md'), '![a](img/r&r.png)\n\n![b](img/c.png?v=1)\n\n![c](img/s.svg#x)\n\n::note::\n\n![n](img/c.png)\n')
+  const out = run('inline2.md', '--inline', '-o', 'dist/')
+  const html = readFileSync(join(dir, 'dist/inline2.html'), 'utf8')
+  assert.doesNotMatch(out, /埋め込めなかった/)
+  assert.equal(html.match(/<img src="data:image\/png;base64,cG5n"/g)?.length, 2)
+  assert.match(html, /<img src="data:image\/svg\+xml;base64,PHN2Zy8\+#x"/)
+  // ノートは JSON に入る（< は \u003c、" は \" になる）
+  assert.match(html, /\\u003cimg src=\\"data:image\/png;base64,cG5n\\"/)
+})
+
 test('--css を埋め込む', () => {
   writeFileSync(join(dir, 'x.css'), ':root { --slide-accent: hotpink; }')
   run('build', 'slide.md', '--css', 'x.css', '-o', 'css.html')

@@ -11,6 +11,9 @@ const assets = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets')
 
 const EXTERNAL = /^(?:[a-z][a-z0-9+.-]*:|\/\/|#|\/)/i
 
+const unesc = (s: string): string =>
+  s.replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+
 /** --inline で data URI にする画像の MIME */
 const IMAGE_MIME: Record<string, string> = {
   '.png': 'image/png',
@@ -51,20 +54,25 @@ export interface RenderResult {
  *   - outDir なし   → file:// の絶対 URL（PDF の一時ファイル用）
  */
 function rewriteImages(html: string, baseDir: string, outDir: string | undefined, inline: boolean, missing: string[]): string {
-  return html.replace(/(<img src=")([^"]+)(")/g, (all, pre: string, src: string, post: string) => {
-    if (EXTERNAL.test(src) || isAbsolute(src)) return all
-    const abs = resolve(baseDir, decodeURI(src))
+  return html.replace(/(<img src=")([^"]+)(")/g, (all, pre: string, attr: string, post: string) => {
+    if (EXTERNAL.test(attr) || isAbsolute(attr)) return all
+    // 属性値は esc() 済み。?v=1 や #id はファイルの場所に含めない
+    const src = unesc(attr)
+    const [, path, suffix] = src.match(/^([^?#]*)(.*)$/) as [string, string, string]
+    const abs = resolve(baseDir, decodeURI(path))
     if (inline) {
       const mime = IMAGE_MIME[extname(abs).toLowerCase()]
       try {
         if (!mime) throw new Error()
-        return pre + `data:${mime};base64,${readFileSync(abs).toString('base64')}` + post
+        // SVG の #id は data URI でも効くので残す
+        const hash = suffix.includes('#') ? suffix.slice(suffix.indexOf('#')) : ''
+        return pre + esc(`data:${mime};base64,${readFileSync(abs).toString('base64')}${hash}`) + post
       } catch {
         missing.push(src)
       }
     }
     const url = outDir ? encodeURI(relative(outDir, abs).split(sep).join('/')) : pathToFileURL(abs).href
-    return pre + url + post
+    return pre + esc(url + suffix) + post
   })
 }
 
@@ -75,7 +83,8 @@ export function render(md: string, { baseDir, outDir, css = '', http, inline = f
   const missing: string[] = []
   const body = rewriteImages(sections.join('\n'), baseDir, outDir, inline, missing)
   // 発表者ノートは本番 DOM に入れず JSON で渡す（発表者ビューが読む）。</script> 対策で < をエスケープ
-  const notesJson = JSON.stringify(notes).replace(/</g, '\\u003c')
+  // ノートの画像も発表者ビューに出るので同じように書き換える
+  const notesJson = JSON.stringify(notes.map((n) => rewriteImages(n, baseDir, outDir, inline, missing))).replace(/</g, '\\u003c')
 
   const html = `<!doctype html>
 <html lang="${esc(meta.lang || 'ja')}">
