@@ -10,8 +10,8 @@ export interface Copy {
   description: string
   hero: { title: string; lede: string; start: string; github: string; copy: string; copied: string }
   demo: { source: string; deck: string; prev: string; next: string }
-  /** [アイコン, 見出し, 説明（HTML）] */
-  features: [StarlightIcon, string, string][]
+  /** [アイコン（Starlight のアイコン名か、独自の 'qr'）, 見出し, 説明（HTML）] */
+  features: [StarlightIcon | 'qr', string, string][]
   footer: string
 }
 
@@ -42,7 +42,7 @@ export const COPY: Record<Lang, Copy> = {
       ['mobile-android', 'Phone remote', '<code>ippon serve</code> shows a QR code. Advance slides and read notes from your phone.'],
       ['laptop', 'Presenter view', 'Press <code>p</code> for the next slide, speaker notes and a timer in a second window.'],
       ['magnifier', 'Zoom and spotlight', 'Click an image or code block to zoom in, and a line to spotlight it.'],
-      ['server', 'Live HTTP', '<code>::http::</code> bakes a real API response into the slide and can re-send it live.'],
+      ['qr', 'QR codes', 'One <code>::qr::</code> line turns a URL into a QR code, drawn at build time. It prints in the PDF too.'],
       ['pencil', 'Edit with an agent', 'Select text in the deck and ask Claude Code or Codex to fix that slide.'],
     ],
     footer: 'Released under the MIT License.',
@@ -67,7 +67,7 @@ export const COPY: Record<Lang, Copy> = {
       ['mobile-android', 'スマホがリモコン', '<code>ippon serve</code> の QR を読めば、手元でページ送りとノートの確認。'],
       ['laptop', '発表者ビュー', '<code>p</code> で次のスライド、発表者ノート、タイマーを別ウィンドウに。'],
       ['magnifier', '拡大とスポットライト', '画像やコードをクリックで拡大。行をクリックすると 1 行だけ強調。'],
-      ['server', 'HTTP を実演', '<code>::http::</code> で API の実レスポンスをスライドに焼き込み、その場で再送信も。'],
+      ['qr', 'QR コード', '<code>::qr::</code> の 1 行で URL を QR コードに。ビルド時に描くので PDF にもそのまま出ます。'],
       ['pencil', 'エージェントと直す', 'デッキで文字を選んで、Claude Code や Codex にそのスライドを直してもらえます。'],
     ],
     footer: 'MIT ライセンスで公開しています。',
