@@ -172,6 +172,7 @@ description: ippon（ippon-slides）の Markdown スライドを編集する。�
 - \`::right::\` の行から右カラム（\`left-wide\` / \`right-wide\` で幅、\`center\` で上下中央揃え）。
 - \`::note::\` 以降は発表者ノート（スライドには出ない）。
 - \`-# \` で始まる段落は小さい注釈。コードの行頭の \`!! \` はその行を強調する。
+- \`::background path=... brightness=0.5 opacity=0.8::\` で背景画像（\`::right::\` の後ろなら右半分）。
 - \`::qr url=...::\` で QR コード、\`::http method=GET url=...::\` で HTTP リクエストのプレイグラウンド。
 `
 

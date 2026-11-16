@@ -121,6 +121,7 @@ const app = new Hono()
 | `::right center::` | カラムを上下中央揃えにする。幅指定と併用可（`::right right-wide center::`） |
 | `::note::` | この行以降は発表者ノート。本番には出ず発表者ビュー（`p`）だけに出る |
 | `::http method=GET url=...::` | HTTP リクエストのプレイグラウンド（下記） |
+| `::background path=... brightness=0.5 opacity=0.8::` | 背景画像。`brightness` で明るさ、`opacity` で濃さ。`::right::` の後ろに書くと画面の右半分だけ |
 | `::qr url=...::` | URL の QR コード（SVG）。`caption` を付けると下に URL も出す |
 | `-# 注釈` | 小さい注釈 |
 | ` ```hcl ` | コード。`hcl` / `console` / `sh` / `json` / `js` / `ts` / `diff` / `yaml` / `py` / `go` / `rust` / `html` / `xml` / `css` をハイライト |

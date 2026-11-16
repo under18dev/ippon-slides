@@ -42,9 +42,14 @@ body {
   display: none;
   flex-direction: column;
   justify-content: center;
-  padding: 6vh 9vw;
+  /* 左右の余白とカラムの間隔（::background:: を右半分に敷くときの計算にも使う） */
+  --pad-x: 9vw;
+  --cols-gap: 4vw;
+  padding: 6vh var(--pad-x);
   box-sizing: border-box;
   overflow: auto;
+  /* ::background:: の画像を背景色の上・中身の下に置く */
+  isolation: isolate;
   /* 日本語を文節で改行する（Chrome 119+） */
   word-break: auto-phrase;
 }
@@ -65,7 +70,8 @@ body {
     transform: none;
   }
 }
-.slide > :first-child {
+.slide > :first-child,
+.slide > .slide-bg + :not(.slide-bg) {
   margin-top: 0;
 }
 
@@ -139,6 +145,29 @@ body {
   color: var(--slide-muted);
 }
 
+/* `::background::` 背景画像。::right:: の後ろなら右カラムの位置から画面の右端まで */
+.slide img.slide-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border-radius: 0;
+  object-fit: cover;
+  z-index: -1;
+  pointer-events: none;
+  cursor: auto;
+}
+.slide img.slide-bg.right {
+  /* 左の余白 + 左カラムの幅 + 間隔の半分（--ratio は左カラムの割合） */
+  --split: calc(var(--pad-x) + (100% - 2 * var(--pad-x) - var(--cols-gap)) * var(--ratio) + var(--cols-gap) / 2);
+  left: var(--split);
+  width: calc(100% - var(--split));
+}
+
 /* `::qr::` URL の QR コード（背景色に関係なく読めるよう白地のまま） */
 .slide .qr {
   /* 幅は figure 側で決める（SVG の素の大きさに縮まないように） */
@@ -163,15 +192,14 @@ body {
 
 /* `::wide::` 左右の余白を詰める */
 .slide.wide {
-  padding-left: 3vw;
-  padding-right: 3vw;
+  --pad-x: 3vw;
 }
 
 /* `::right::` 2 カラム */
 .slide .cols {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 4vw;
+  gap: var(--cols-gap);
   align-items: start;
   width: 100%;
 }
@@ -756,7 +784,8 @@ body {
     inset: auto;
     /* 少なくとも 16:9 の高さ。長いスライドは中身に合わせて伸びる */
     min-height: 56.25vw;
-    padding: 8vw 6vw;
+    --pad-x: 6vw;
+    padding: 8vw var(--pad-x);
     overflow: visible;
     animation: none;
     border-bottom: 1px solid var(--slide-border);
@@ -994,15 +1023,16 @@ body.presenter #overview {
     position: relative;
     width: 1280px;
     height: 720px;
-    padding: 43px 115px;
+    --pad-x: 115px;
+    --cols-gap: 51px;
+    padding: 43px var(--pad-x);
     animation: none !important;
     overflow: hidden;
     break-after: page;
     background: var(--slide-bg);
   }
   .slide.wide {
-    padding-left: 38px;
-    padding-right: 38px;
+    --pad-x: 38px;
   }
   .slide.center p {
     font-size: calc(3.5rem * var(--slide-size, 1));

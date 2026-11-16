@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { httpKey, parse, parseHttp, parseQr, scanHttp, slideLines } from '../src/markdown.ts'
+import { httpKey, parse, parseBackground, parseHttp, parseQr, scanHttp, slideLines } from '../src/markdown.ts'
 import type { HttpMap } from '../src/markdown.ts'
 import { highlight } from '../src/highlight.ts'
 
@@ -279,6 +279,42 @@ test('::qr:: の URL が長すぎるとエラーにする', () => {
 test('コードフェンス内の ::qr:: はそのまま', () => {
   const [s = ''] = parse('```\n::qr url=https://e.x::\n```\n').sections
   assert.doesNotMatch(s, /class="qr"/)
+})
+
+test('::background:: をパースする（path 必須・brightness / opacity は数値）', () => {
+  assert.deepEqual(parseBackground('::background path=img/a.jpg::'), { path: 'img/a.jpg' })
+  assert.deepEqual(parseBackground('::background img/a.jpg brightness=0.5 opacity=.8::'), {
+    path: 'img/a.jpg',
+    brightness: '0.5',
+    opacity: '.8',
+  })
+  assert.equal(parseBackground('::background opacity=0.5::'), null)
+  // = を含む URL もキー省略で書ける（知らない `名前=` は飛ばす）
+  assert.deepEqual(parseBackground('::background https://e.x/a.jpg?w=1280&h=720 foo=1::'), {
+    path: 'https://e.x/a.jpg?w=1280&h=720',
+  })
+  assert.throws(() => parseBackground('::background path=a.jpg brightness=red::'), /brightness は数値で/)
+})
+
+test('::background:: はスライド全体、::right:: の後ろなら右半分の背景画像になる', () => {
+  const [full = '', right = '', wide = ''] = parse(
+    '# a\n\n::background path=a.jpg brightness=0.6 opacity=0.8::\n\n---\n\n' +
+      'b\n\n::right::\n\n::background path=b.jpg::\n\n---\n\n' +
+      'c\n\n::right right-wide::\n\n::background path=c.jpg::\n'
+  ).sections
+  assert.match(full, /<img src="a\.jpg" class="slide-bg" alt="" style="opacity:0\.8;filter:brightness\(0\.6\)">/)
+  assert.match(right, /<img src="b\.jpg" class="slide-bg right" alt="" style="--ratio:0\.5">/)
+  assert.match(wide, /class="slide-bg right" alt="" style="--ratio:0\.4167"/)
+  // コードフェンス内はそのまま
+  const [code = ''] = parse('```\n::background path=a.jpg::\n```\n').sections
+  assert.doesNotMatch(code, /slide-bg/)
+})
+
+test('::background:: はどこに書いてもスライドの先頭に置く（表紙の p:last-child を崩さない）', () => {
+  const [s = ''] = parse('::title::\n\n# t\n\nname\n\n::background path=a.jpg::\n').sections
+  assert.match(s, /^<section class="slide title"><img src="a\.jpg" class="slide-bg" alt=""><h1>t<\/h1><p>name<\/p><\/section>$/)
+  const [r = ''] = parse('a\n\n::right::\n\n::background path=b.jpg::\n\nb\n').sections
+  assert.match(r, /^<section class="slide"><img src="b\.jpg" class="slide-bg right" alt="" style="--ratio:0\.5"><div class="cols">/)
 })
 
 test('slideLines はスライドごとの元ファイル上の行範囲を返す（frontmatter・空行・コード内の --- を考慮）', () => {
