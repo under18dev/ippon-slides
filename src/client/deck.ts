@@ -5,6 +5,7 @@
 //   f                                       フルスクリーン
 //   o / Esc                                 一覧
 //   p                                       発表者ビュー（別ウィンドウ）
+//   スマホの縦持ち                          縦読みモード（全スライドを縦に並べる。左下のボタンで切り替え）
 (() => {
   const slides = Array.from(document.querySelectorAll<HTMLElement>('#deck .slide'))
   if (!slides.length) return
@@ -285,6 +286,46 @@
     if (ovOpen && ovItems) layoutOverview(ovItems)
   })
 
+  // ---------- 縦読みモード（スマホの縦持ちでは全スライドを縦に並べてスクロールで読む） ----------
+
+  const portrait = window.matchMedia('(orientation: portrait) and (pointer: coarse)')
+  let readingOff = false // 縦持ちのまま「スライド表示」に切り替えた
+  const readBtn = document.createElement('button')
+  readBtn.type = 'button'
+  readBtn.className = 'reading-toggle'
+  document.body.appendChild(readBtn)
+  const reading = () => document.body.classList.contains('reading')
+
+  // 縦読みで画面の上の方に見えているスライド
+  function visibleSlide(): number {
+    const i = slides.findIndex((s) => s.getBoundingClientRect().bottom > window.innerHeight * 0.3)
+    return i < 0 ? slides.length - 1 : i
+  }
+  function syncReading(): void {
+    const on = portrait.matches && !readingOff
+    if (on && !reading()) {
+      closeOverview()
+      document.body.classList.add('reading')
+      slides[idx]!.scrollIntoView()
+    } else if (!on && reading()) {
+      // 縦読みで読んでいたスライドからプレゼン表示を始める
+      const n = visibleSlide()
+      document.body.classList.remove('reading')
+      if (n !== idx) go(n)
+    }
+    readBtn.hidden = !portrait.matches
+    readBtn.textContent = on ? '▶ スライド表示' : '☰ 縦に読む'
+  }
+  readBtn.addEventListener('click', () => {
+    readingOff = !readingOff
+    syncReading()
+  })
+  // 回転したら向きに合わせ直す
+  portrait.addEventListener('change', () => {
+    readingOff = false
+    syncReading()
+  })
+
   // ---------- 入力 ----------
 
   document.addEventListener('keydown', (e) => {
@@ -293,6 +334,7 @@
       if (e.key === 'Escape') closeZoom()
       return
     }
+    if (reading()) return
     if (ovOpen) {
       if (e.key === 'Escape' || e.key === 'o') closeOverview()
       return
@@ -341,6 +383,7 @@
   // 画面の右 3 割で次へ、左 3 割で前へ（リンクと文字選択は邪魔しない）
   const deck = $('deck')
   deck.addEventListener('click', (e) => {
+    if (reading()) return
     if (e.target instanceof Element && e.target.closest('a, button')) return
     if (String(window.getSelection() || '')) return
     const x = e.clientX / window.innerWidth
@@ -362,7 +405,7 @@
     'touchend',
     (e) => {
       const t = e.changedTouches[0]
-      if (!touch || !t) return
+      if (!touch || !t || reading()) return
       const dx = t.clientX - touch.x
       const dy = t.clientY - touch.y
       touch = null
@@ -510,6 +553,7 @@
   const start = parseInt(location.hash.slice(1), 10)
   if (start) idx = clamp(start - 1)
   render()
+  syncReading()
 
   if (serveCfg) {
     const hint = $('hint')
