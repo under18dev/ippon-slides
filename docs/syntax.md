@@ -102,7 +102,7 @@ v1 以降、この決まりと既存の記法は互換性を保ちます。記�
 
 `::right::` の行から右カラムが始まります。先頭の見出しはカラムの外（上）に出ます。
 
-```md
+````md
 ## 見出し
 
 - 左に説明
@@ -110,10 +110,10 @@ v1 以降、この決まりと既存の記法は互換性を保ちます。記�
 
 ::right::
 
-\`\`\`ts
+```ts
 const app = new Hono()
-\`\`\`
 ```
+````
 
 カラム幅は `::right left-wide::`（1.4 : 1）、`::right right-wide::`（1 : 1.4）で変えられます。
 
@@ -141,10 +141,10 @@ const x = 1
 ````
 
 ハイライト対応: `hcl` / `tf` / `terraform`、`sh` / `bash` / `shell` / `zsh`、`json`、
-`js` / `ts` / `jsx` / `tsx`、`yaml` / `yml`、`py` / `python`、`go` / `golang`、`rust` / `rs`、
+`js` / `javascript` / `ts` / `typescript` / `jsx` / `tsx`、`yaml` / `yml`、`py` / `python`、`go` / `golang`、`rust` / `rs`、
 `html` / `xml` / `svg`、`css`、`diff` / `patch`、`console`。
 
-`console` は `$ ` で始まる行をコマンド、`Error` を含む行をエラーとして色分けします。
+`console` は `$ ` で始まる行をコマンド、`Error` や `panic` を含む行と `make: ***` で始まる行をエラーとして色分けします。
 
 `diff` は `+` で始まる行を追加（緑）、`-` で始まる行を削除（赤）として行全体を塗り、
 `@@` の hunk ヘッダと `---` / `+++` のファイルヘッダも色分けします。`!! ` も併用できます。
@@ -180,7 +180,7 @@ const x = 1
 ビルド時に生成するのでネットワークは使わず、PDF にもそのまま出ます。
 
 ```md
-::qr url=https://github.com/under18/ippon-slides::
+::qr url=https://github.com/under18dev/ippon-slides::
 ::qr https://example.com caption::
 ```
 

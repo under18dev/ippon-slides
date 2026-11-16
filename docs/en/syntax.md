@@ -141,10 +141,10 @@ const x = 1
 ````
 
 Supported highlighting: `hcl` / `tf` / `terraform`, `sh` / `bash` / `shell` / `zsh`, `json`,
-`js` / `ts` / `jsx` / `tsx`, `yaml` / `yml`, `py` / `python`, `go` / `golang`, `rust` / `rs`,
+`js` / `javascript` / `ts` / `typescript` / `jsx` / `tsx`, `yaml` / `yml`, `py` / `python`, `go` / `golang`, `rust` / `rs`,
 `html` / `xml` / `svg`, `css`, `diff` / `patch`, `console`.
 
-`console` colors lines starting with `$ ` as commands and lines containing `Error` as errors.
+`console` colors lines starting with `$ ` as commands and lines containing `Error` or `panic`, or starting with `make: ***`, as errors.
 
 `diff` colors whole lines: lines starting with `+` as additions (green) and lines starting with `-` as deletions (red).
 It also colors `@@` hunk headers and `---` / `+++` file headers. You can combine it with `!! `.
@@ -180,7 +180,7 @@ Write `::qr url=https://...::` to embed a QR code for that URL in the slide as S
 It is generated at build time, so it needs no network and shows up in PDFs as is.
 
 ```md
-::qr url=https://github.com/under18/ippon-slides::
+::qr url=https://github.com/under18dev/ippon-slides::
 ::qr https://example.com caption::
 ```
 
