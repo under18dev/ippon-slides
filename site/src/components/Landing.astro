@@ -276,8 +276,11 @@ const ld = {
           }
         }
         const go = (n: number) => {
-          if (!frame.contentWindow) return
-          frame.contentWindow.location.hash = '#' + Math.min(total, Math.max(1, n))
+          const loc = frame.contentWindow?.location
+          if (!loc) return
+          // hash への代入は親ページの履歴に積まれて「戻る」がスライドをたどってしまうので、置き換えで動かす
+          // （相対の '#N' は親ページの URL で解決されるので、iframe の URL から組み立てる）
+          loc.replace(loc.href.split('#')[0] + '#' + Math.min(total, Math.max(1, n)))
         }
         const sync = () => {
           const n = current()
