@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://ippon.under18.dev/sitemap.xml
