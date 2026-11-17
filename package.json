@@ -1,14 +1,29 @@
 {
   "name": "ippon-slides",
   "version": "0.2.0",
-  "description": "1 枚 1 メッセージのスライドを Markdown から作る CLI。HTML 1 ファイルと PDF を出力",
+  "description": "Markdown to one-message-per-slide decks (Takahashi method): one self-contained HTML file and a 16:9 PDF, zero dependencies. 1 枚 1 メッセージのスライドを Markdown から作る CLI",
   "keywords": [
     "slides",
+    "slide-deck",
     "presentation",
+    "presentation-tool",
     "markdown",
+    "markdown-slides",
+    "markdown-to-html",
+    "markdown-to-pdf",
     "cli",
     "pdf",
-    "takahashi-method"
+    "takahashi-method",
+    "speaker-notes",
+    "presenter-view",
+    "remote-control",
+    "qr-code",
+    "ogp",
+    "zero-dependency",
+    "single-file",
+    "static-html",
+    "スライド",
+    "プレゼン"
   ],
   "license": "MIT",
   "author": "tanahiro2010",
@@ -16,7 +31,7 @@
     "type": "git",
     "url": "git+https://github.com/under18dev/ippon-slides.git"
   },
-  "homepage": "https://github.com/under18dev/ippon-slides#readme",
+  "homepage": "https://ippon.under18.dev",
   "bugs": {
     "url": "https://github.com/under18dev/ippon-slides/issues"
   },
