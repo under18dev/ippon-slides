@@ -4,8 +4,9 @@
   "type": "module",
   "scripts": {
     "demo": "node scripts/demo.mjs",
+    "og": "node scripts/og.mjs",
     "dev": "npm run demo && astro dev",
-    "build": "npm run demo && astro build",
+    "build": "npm run demo && npm run og && astro build",
     "preview": "astro preview"
   },
   "dependencies": {

@@ -10,6 +10,7 @@ import { docsSchema } from '@astrojs/starlight/schema'
 import { readFile, readdir } from 'node:fs/promises'
 import { posix, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { DESCRIPTIONS } from './descriptions'
 
 const REPO = 'https://github.com/under18dev/ippon-slides/blob/main/'
 
@@ -57,17 +58,21 @@ function repoDocs(): Loader {
               continue
             }
             const body = rewriteLinks(src.replace(h1[0], ''), dir)
-            // 最初の段落を description に（検索結果や OGP 用）
+            const id = prefix + slugOf(file)
+            // description は descriptions.ts のもの。無ければ最初の段落（日本語の行の折り返しは詰めてつなぐ）
             const lead = body
               .split(/\n\n+/)
               .map((p) => p.trim())
               .find((p) => p && !/^[#>|`\-*!]/.test(p))
-            const description = lead
-              ?.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-              .replace(/[`*]/g, '')
-              .replace(/\s*\n\s*/g, ' ')
-              .slice(0, 160)
-            const id = prefix + slugOf(file)
+            const description =
+              DESCRIPTIONS[id] ??
+              lead
+                ?.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+                .replace(/[`*]/g, '')
+                .replace(/([^\x00-\x7f])\s*\n\s*(?=[^\x00-\x7f])/g, '$1')
+                .replace(/\s*\n\s*/g, ' ')
+                .slice(0, 160)
+            if (!DESCRIPTIONS[id]) logger.warn(`${id} の description が descriptions.ts にありません`)
             const data = await parseData({
               id,
               data: { title: h1[1]!.replace(/`/g, ''), ...(description ? { description } : {}) },

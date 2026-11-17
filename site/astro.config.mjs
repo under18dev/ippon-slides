@@ -9,7 +9,8 @@ export default defineConfig({
   trailingSlash: 'always',
   integrations: [
     starlight({
-      title: 'ippon',
+      // <title> の「| ...」に付くサイト名。画面の左上は SiteTitle.astro が「ippon.」と出す
+      title: { en: 'ippon — Markdown slides CLI', ja: 'ippon — Markdown スライド CLI' },
       description: 'Markdown to one-message-per-slide decks. A single self-contained HTML file, a 16:9 PDF, zero dependencies.',
       favicon: '/favicon.svg',
       defaultLocale: 'root',
@@ -25,7 +26,7 @@ export default defineConfig({
         {
           label: 'Guide',
           translations: { ja: 'ガイド' },
-          items: [{ slug: 'docs', label: 'Overview', translations: { ja: '概要' } }, 'docs/getting-started', 'docs/syntax', 'docs/presenter', 'docs/theming'],
+          items: [{ slug: 'docs', label: 'Overview', translations: { ja: '概要' } }, 'docs/why', 'docs/getting-started', 'docs/syntax', 'docs/presenter', 'docs/theming'],
         },
         {
           label: 'Features',
@@ -35,16 +36,18 @@ export default defineConfig({
         {
           label: 'Reference',
           translations: { ja: 'リファレンス' },
-          items: ['docs/cli'],
+          items: ['docs/cli', 'docs/faq'],
         },
       ],
       head: [
         { tag: 'meta', attrs: { property: 'og:image', content: `${SITE}/og.png` } },
         { tag: 'meta', attrs: { property: 'og:image:width', content: '1200' } },
         { tag: 'meta', attrs: { property: 'og:image:height', content: '630' } },
-        { tag: 'meta', attrs: { name: 'theme-color', content: '#000000' } },
+        { tag: 'meta', attrs: { name: 'theme-color', content: '#1b1b1f', media: '(prefers-color-scheme: dark)' } },
+        { tag: 'meta', attrs: { name: 'theme-color', content: '#ffffff', media: '(prefers-color-scheme: light)' } },
       ],
       customCss: ['./src/styles/theme.css'],
+      routeMiddleware: './src/routeData.ts',
       // コードブロックに端末風の枠（3 つの点）を付けない
       expressiveCode: { defaultProps: { frame: 'none' } },
       components: {
