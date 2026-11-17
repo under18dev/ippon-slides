@@ -1,13 +1,21 @@
 # ippon-slides
 
+[![npm](https://img.shields.io/npm/v/ippon-slides)](https://www.npmjs.com/package/ippon-slides)
+[![license](https://img.shields.io/npm/l/ippon-slides)](LICENSE)
+[![docs](https://img.shields.io/badge/docs-ippon.under18.dev-ff6a00)](https://ippon.under18.dev/)
+
 **1 枚 1 メッセージ** のスライドを Markdown から作る CLI。
+
+> **English:** ippon turns Markdown into one-message-per-slide decks (the Takahashi method): one
+> self-contained HTML file and a 16:9 PDF, with zero dependencies. Try `npx ippon-slides init`.
+> Documentation in English: **[ippon.under18.dev](https://ippon.under18.dev/docs/)**
 
 - 黒背景・大きな文字・切り替え時のフェードイン
 - 出力は CSS / JS まで全部入った **HTML 1 ファイル**（会場がオフラインでも開ける）
 - `--pdf` で 16:9 の **PDF** も出せる
 - 依存パッケージなし
 
-📚 詳しいドキュメントは **[ippon.under18.dev](https://ippon.under18.dev/ja/docs/)** と [`docs/`](docs/README.md) にあります（[記法](docs/syntax.md) ・ [`::http::`](docs/http.md) ・ [`ippon serve`](docs/serve.md) ・ [発表者ビュー](docs/presenter.md) ・ [見た目](docs/theming.md) ・ [CLI](docs/cli.md)）。
+📚 詳しいドキュメントは **[ippon.under18.dev](https://ippon.under18.dev/ja/docs/)** と [`docs/`](docs/README.md) にあります（[記法](docs/syntax.md) ・ [`::http::`](docs/http.md) ・ [`ippon serve`](docs/serve.md) ・ [発表者ビュー](docs/presenter.md) ・ [見た目](docs/theming.md) ・ [CLI](docs/cli.md) ・ [Marp・Slidev との違い](docs/why.md) ・ [よくある質問](docs/faq.md)）。
 
 ## 思想 — なぜ「ippon」なのか
 

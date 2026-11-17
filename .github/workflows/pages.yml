@@ -41,6 +41,8 @@ jobs:
             site/package-lock.json
       # トップのデモは、このリポジトリの ippon で実際にビルドする（assets/deck.js が要る）
       - run: npm ci && npm run build
+      # ページごとの OGP 画像は ippon ogp（Chrome）で作る。Web フォントが読めなくても日本語が豆腐にならないように
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends fonts-noto-cjk
       - run: npm ci && npm run build
         working-directory: site
       - uses: actions/configure-pages@v5
