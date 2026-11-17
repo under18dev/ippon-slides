@@ -1,11 +1,11 @@
 # ippon-slides documentation
 
-日本語版は [こちら](../README.md).
-
 This is the full documentation for `ippon`, a CLI that turns Markdown into "one message per slide" decks.
 For an overview and installation, see the [repository README](../../README.md).
 
-The ideas behind the design are described in the "思想" (philosophy) section of the [repository README](../../README.md).
+The Japanese version is [here](../README.md).
+
+The ideas behind the design, and how ippon differs from Marp, Slidev and reveal.js, are in [Why ippon](why.md).
 
 ## Contents
 
@@ -16,6 +16,8 @@ The ideas behind the design are described in the "思想" (philosophy) section o
 - [Presenter view and controls](presenter.md) — keys, timer, and speaker notes during a talk
 - [Change the look](theming.md) — `--css` and CSS variables
 - [CLI reference](cli.md) — all commands and options
+- [Why ippon](why.md) — the ideas behind it, and how it differs from Marp, Slidev and reveal.js
+- [FAQ](faq.md) — PDF, offline use, PPTX, phone control and more
 
 ## Features
 

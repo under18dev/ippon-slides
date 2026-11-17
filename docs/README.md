@@ -3,7 +3,7 @@
 Markdown から「1 枚 1 メッセージ」のスライドを作る CLI、`ippon` の詳しいドキュメントです。
 概要とインストールは[リポジトリの README](../README.md) を参照してください。
 
-設計の背景にある考え方は[リポジトリ README の「思想」](../README.md#思想--なぜipponなのか)にまとめています。
+設計の背景にある考え方と、Marp・Slidev・reveal.js との違いは[なぜ ippon か](why.md)にまとめています。
 
 ## 目次
 
@@ -14,6 +14,8 @@ Markdown から「1 枚 1 メッセージ」のスライドを作る CLI、`ippo
 - [発表者ビューと操作](presenter.md) — 発表中のキー操作・タイマー・発表者ノート
 - [見た目を変える](theming.md) — `--css` と CSS 変数
 - [CLI リファレンス](cli.md) — コマンドとオプションの一覧
+- [なぜ ippon か](why.md) — 考え方と、Marp・Slidev・reveal.js との違い
+- [よくある質問](faq.md) — PDF・オフライン・PPTX・スマホ操作など
 
 ## 特徴
 
