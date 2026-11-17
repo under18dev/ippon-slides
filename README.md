@@ -266,6 +266,14 @@ npm test           # ビルドしてからテスト（テストの実行には N
 
 貢献の流れ・規約・リリース手順は [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
 
+## 謝辞
+
+Inspired by Yusuke Wada's personal slide application. ippon-slides is an independent
+implementation focused on portable, self-contained presentations.
+
+Yusuke Wada さんの個人用のスライドアプリに着想を得ています。ippon-slides はそれとは別の独立した
+実装で、持ち運べて、それだけで完結するプレゼンテーションに重きを置いています。
+
 ## License
 
 MIT
