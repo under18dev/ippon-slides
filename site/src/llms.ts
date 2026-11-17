@@ -14,3 +14,7 @@ export async function docsOf(prefix: '' | 'ja/') {
 
 /** 本文のサイト内リンク（/docs/foo/）を絶対 URL にする */
 export const absolute = (md: string) => md.replace(/\]\(\//g, `](${SITE}/`)
+
+/** 着想元への謝辞（README の「謝辞」と同じ内容） */
+export const CREDIT =
+  "Inspired by Yusuke Wada's ([@yusukebe](https://github.com/yusukebe)) personal slide application. ippon-slides is an independent implementation focused on portable, self-contained presentations."
