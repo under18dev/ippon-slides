@@ -14,6 +14,12 @@ ippon は [高橋メソッド](https://ja.wikipedia.org/wiki/%E9%AB%98%E6%A9%8B%
 そのため ippon には、テーマやレイアウトを選ぶ仕組みがほとんどありません。黒地に大きな文字という
 1 種類の見た目を既定にし、書き始めてすぐ発表できることを優先しています。
 
+## 着想元
+
+ippon は Yusuke Wada さん（[@yusukebe](https://github.com/yusukebe)）の個人用のスライドアプリに
+着想を得ています。それとは別の独立した実装で、持ち運べて、それだけで完結する
+スライドに重きを置いています。
+
 ## ほかの道具との違い
 
 | | ippon | Marp | Slidev | reveal.js |

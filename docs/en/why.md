@@ -14,6 +14,11 @@ is the cue to split the slide.
 That is why ippon has almost no theme or layout system. It defaults to one look, large text on
 black, so you can start writing and present right away.
 
+## Inspiration
+
+ippon is inspired by Yusuke Wada's ([@yusukebe](https://github.com/yusukebe)) personal slide
+application. It is an independent implementation focused on portable, self-contained presentations.
+
 ## How it differs from other tools
 
 | | ippon | Marp | Slidev | reveal.js |
