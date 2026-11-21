@@ -197,9 +197,11 @@ export async function serve(input: string, opts: ServeOptions = {}): Promise<Ser
         })
         req.on('end', () => {
           try {
+            // 1 行の JSON に書き直してから流す（改行があると SSE の data: が途中で切れる）
             const msg = JSON.parse(body) as { type?: string }
-            if (msg && msg.type === 'state') lastState = body
-            broadcast(body)
+            const line = JSON.stringify(msg)
+            if (msg && msg.type === 'state') lastState = line
+            broadcast(line)
           } catch {
             /* 壊れた JSON は無視 */
           }
