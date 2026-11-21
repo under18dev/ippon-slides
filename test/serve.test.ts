@@ -182,3 +182,18 @@ test('Markdown を書き換えると SSE で reload を配信し、/ も新し�
   assert.match(buf, /"type":"reload"/)
   assert.match((await get('/?t=' + r.token)).body, /書き換えたタイトル/)
 })
+
+test('/remote の <title> は frontmatter の title をエスケープする', async () => {
+  const dir2 = mkdtempSync(join(tmpdir(), 'ippon-serve-'))
+  const md2 = join(dir2, 'd.md')
+  writeFileSync(md2, '---\ntitle: </title><script>alert(1)</script>\n---\n\n# x\n')
+  const r2 = await serve(md2, { port: 0 })
+  try {
+    const body = await (await fetch(`http://localhost:${r2.port}/remote?t=${r2.token}`)).text()
+    assert.ok(!body.includes('<script>alert(1)</script>'))
+    assert.match(body, /<title>&lt;\/title&gt;&lt;script&gt;/)
+  } finally {
+    r2.server.close()
+    rmSync(dir2, { recursive: true, force: true })
+  }
+})
