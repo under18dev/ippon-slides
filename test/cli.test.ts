@@ -54,6 +54,13 @@ test('init → build --html', () => {
   assert.doesNotMatch(html, /class="notes"/)
 })
 
+test('-o が入力の Markdown 自身なら、上書きせずにエラーにする', () => {
+  writeFileSync(join(dir, 'keep.md'), '# 原稿\n')
+  for (const args of [['build', 'keep.md', '-o', 'keep.md'], ['build', 'keep.md', '--output=./keep.md'], ['ogp', 'keep.md', '-o', 'keep.md']])
+    assert.throws(() => run(...args), /入力の Markdown と同じ/)
+  assert.equal(readFileSync(join(dir, 'keep.md'), 'utf8'), '# 原稿\n')
+})
+
 test('画像の相対パスは出力先から見たパスに書き換える', () => {
   mkdirSync(join(dir, 'img'), { recursive: true })
   writeFileSync(join(dir, 'img/a.png'), '')
