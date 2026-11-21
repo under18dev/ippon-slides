@@ -122,7 +122,7 @@ test('ippon current: 起動中の ippon serve から表示中のスライドを�
       })
       child.on('exit', () => rej(new Error('serve が終了した: ' + buf)))
     })
-    const [, port, token] = out.match(/http:\/\/localhost:(\d+)\/\?t=([\w-]+)/)!
+    const [, port, token] = out.match(/http:\/\/127\.0\.0\.1:(\d+)\/\?t=([\w-]+)/)!
 
     await assert.rejects(run('current'), /デッキがまだ開かれていません/)
     await fetch(`http://localhost:${port}/cmd?t=${token}`, {

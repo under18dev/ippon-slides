@@ -35,6 +35,11 @@ test('トークン無しは 403', async () => {
   assert.equal((await get('/events')).status, 403)
 })
 
+test('この PC で開く URL は 127.0.0.1 宛て（::1 で待ち受ける別プロセスにトークンを送らない）', () => {
+  assert.equal(r.deckUrl, `http://127.0.0.1:${r.port}/?t=${r.token}`)
+  assert.ok(r.currentUrl.startsWith(`http://127.0.0.1:${r.port}/`))
+})
+
 test('/?t= はデッキ HTML に window.__ippon を注入する', async () => {
   const { status, body } = await get('/?t=' + r.token)
   assert.equal(status, 200)
