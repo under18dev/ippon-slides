@@ -7,13 +7,30 @@ import type { HttpMap, HttpResult, HttpSpec } from './markdown.ts'
 const TIMEOUT = 10_000
 const MAX_BODY = 20_000
 
+/** 本文を MAX_BODY 文字まで読む。超えたらそこで接続を切る（終わらない・巨大なレスポンスを全部溜めない） */
+async function readBody(res: Response): Promise<{ text: string; truncated: boolean }> {
+  if (!res.body) return { text: '', truncated: false }
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let text = ''
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) return { text: text + decoder.decode(), truncated: false }
+    text += decoder.decode(value, { stream: true })
+    if (text.length > MAX_BODY) {
+      await reader.cancel().catch(() => {})
+      return { text: text.slice(0, MAX_BODY), truncated: true }
+    }
+  }
+}
+
 async function fetchOne(spec: HttpSpec): Promise<HttpResult> {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT)
   const t0 = performance.now()
   try {
     const res = await fetch(spec.url, { method: spec.method, signal: ctrl.signal, redirect: 'follow' })
-    const text = await res.text()
+    const { text, truncated } = await readBody(res)
     const ms = Math.round(performance.now() - t0)
     const headers: [string, string][] = []
     res.headers.forEach((v, k) => headers.push([k, v]))
@@ -23,8 +40,8 @@ async function fetchOne(spec: HttpSpec): Promise<HttpResult> {
       ms,
       headers,
       contentType: res.headers.get('content-type') || '',
-      body: text.length > MAX_BODY ? text.slice(0, MAX_BODY) : text,
-      truncated: text.length > MAX_BODY,
+      body: text,
+      truncated,
     }
   } catch (e) {
     const err = e instanceof Error ? (e.name === 'AbortError' ? `タイムアウト（${TIMEOUT / 1000}s）` : e.message) : String(e)
