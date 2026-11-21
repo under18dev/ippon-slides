@@ -149,7 +149,7 @@ test('/__current-slide は表示中のスライドの行範囲・Markdown・選�
   const srv = await serve(file, { port: 0 })
   try {
     const url = srv.currentUrl
-    assert.equal(url, `http://localhost:${srv.port}/__current-slide`)
+    assert.equal(url, `http://127.0.0.1:${srv.port}/__current-slide`)
     const get = () => fetch(url, { headers: { 'x-ippon-key': srv.agentKey } })
     // デッキが state を送る前は 404
     assert.equal((await get()).status, 404)

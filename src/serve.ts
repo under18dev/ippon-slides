@@ -61,7 +61,10 @@ export interface ServeResult {
   remoteUrls: string[]
   /** 先頭のリモコン URL を表す QR の SVG */
   qrSvg: string
-  /** いま表示中のスライドを返す URL（コーディングエージェント向け。この PC からだけ） */
+  /**
+   * いま表示中のスライドを返す URL（コーディングエージェント向け。この PC からだけ）。
+   * 鍵を送る先なので、::1 の別プロセスに繋がらないよう localhost ではなく 127.0.0.1 にする
+   */
   currentUrl: string
   /**
    * currentUrl に x-ippon-key ヘッダで渡す鍵。トークンとは別にし、本人だけが読める状態ファイルに置く。
@@ -341,7 +344,7 @@ export async function serve(input: string, opts: ServeOptions = {}): Promise<Ser
     deckUrl: `http://localhost:${port}/?t=${token}`,
     remoteUrls,
     qrSvg: qrSvg(remoteUrls[0]!, 4),
-    currentUrl: `http://localhost:${port}/__current-slide`,
+    currentUrl: `http://127.0.0.1:${port}/__current-slide`,
     agentKey,
   }
 }

@@ -99,7 +99,9 @@ export async function current(cwd: string, input?: string): Promise<string> {
         ? `${input} を配信している ippon serve が見つかりません（先に ippon serve ${input} を起動してください）`
         : 'ippon serve が見つかりません（先に ippon serve slide.md を起動してください）'
     )
-  const res = await fetch(`http://localhost:${e.port}/__current-slide`, { headers: { 'x-ippon-key': e.key } })
+  // serve は IPv4（0.0.0.0）で待ち受ける。localhost だと ::1 に先に繋ぐ環境があり、他のユーザーが同じポートの
+  // ::1 で待ち受けていると鍵をそちらに送ってしまうので、127.0.0.1 に固定する
+  const res = await fetch(`http://127.0.0.1:${e.port}/__current-slide`, { headers: { 'x-ippon-key': e.key } })
   const body = await res.text()
   if (!res.ok) {
     let msg = body
