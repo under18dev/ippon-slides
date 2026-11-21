@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { after, before, test } from 'node:test'
@@ -76,18 +76,41 @@ test('POST /cmd が SSE 購読者へ配信される', async () => {
   assert.match(buf, /"type":"go".*"n":1|"n":1.*"type":"go"/)
 })
 
-test('静的配信は画像だけ。ソースや設定ファイルは漏らさない（トークン不要の経路）', async () => {
-  // 画像は配信してよい
-  const png = await get('/pic.png')
+test('静的配信は画像だけ。ソースや設定ファイルは漏らさない', async () => {
+  // デッキを開くと Cookie が付き、それで画像を読める
+  const deck = await fetch(base() + '/?t=' + r.token)
+  const cookie = deck.headers.get('set-cookie')!.split(';')[0]!
+  assert.match(deck.headers.get('set-cookie')!, /HttpOnly; SameSite=Strict/)
+  const withCookie = (p: string) => fetch(base() + p, { headers: { cookie } })
+  const png = await withCookie('/pic.png')
   assert.equal(png.status, 200)
-  assert.equal(png.body, 'PNGDATA')
+  assert.equal(await png.text(), 'PNGDATA')
+  // 直接開いても SVG のスクリプトが動かないよう sandbox を付ける
+  assert.match(png.headers.get('content-security-policy')!, /sandbox/)
   // Markdown ソース（::note:: を含む）・設定・ドットファイルは 404
-  assert.equal((await get('/d.md')).status, 404)
-  assert.equal((await get('/config.json')).status, 404)
-  assert.equal((await get('/.env')).status, 404)
+  assert.equal((await withCookie('/d.md')).status, 404)
+  assert.equal((await withCookie('/config.json')).status, 404)
+  assert.equal((await withCookie('/.env')).status, 404)
   // パストラバーサル（素・URL エンコードとも）
-  assert.equal((await get('/../../../etc/passwd')).status, 404)
-  assert.equal((await get('/%2e%2e/%2e%2e/etc/passwd')).status, 404)
+  assert.equal((await withCookie('/../../../etc/passwd')).status, 404)
+  assert.equal((await withCookie('/%2e%2e/%2e%2e/etc/passwd')).status, 404)
+})
+
+test('静的配信は Cookie もトークンも無いと 403（LAN の他の端末から画像を読ませない）', async () => {
+  assert.equal((await get('/pic.png')).status, 403)
+  assert.equal((await fetch(base() + '/pic.png', { headers: { cookie: 'ippon-1=x' } })).status, 403)
+  assert.equal((await get('/pic.png?t=' + r.token)).status, 200)
+})
+
+test('シンボリックリンクでフォルダの外を指す画像は配信しない', async () => {
+  const outside = mkdtempSync(join(tmpdir(), 'ippon-out-'))
+  writeFileSync(join(outside, 'o.png'), 'OUT')
+  symlinkSync(outside, join(dir, 'link'))
+  try {
+    assert.equal((await get('/link/o.png?t=' + r.token)).status, 403)
+  } finally {
+    rmSync(outside, { recursive: true, force: true })
+  }
 })
 
 test('state は保持され、後から繋いだ購読者にも即届く', async () => {
