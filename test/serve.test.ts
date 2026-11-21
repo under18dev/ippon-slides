@@ -81,6 +81,11 @@ test('静的配信は画像だけ。ソースや設定ファイルは漏らさ�
   const deck = await fetch(base() + '/?t=' + r.token)
   const cookie = deck.headers.get('set-cookie')!.split(';')[0]!
   assert.match(deck.headers.get('set-cookie')!, /HttpOnly; SameSite=Strict/)
+  // Cookie は別のポートのサーバにも送られるので、トークンそのものを入れない（デッキ・/events・/cmd に使えない）
+  const key = cookie.split('=')[1]!
+  assert.notEqual(key, r.token)
+  assert.equal((await get('/?t=' + key)).status, 403)
+  assert.equal((await get('/events?t=' + key)).status, 403)
   const withCookie = (p: string) => fetch(base() + p, { headers: { cookie } })
   const png = await withCookie('/pic.png')
   assert.equal(png.status, 200)

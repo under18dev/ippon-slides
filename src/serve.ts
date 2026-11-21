@@ -167,11 +167,13 @@ export async function serve(input: string, opts: ServeOptions = {}): Promise<Ser
   readCss()
   let port = 0
   // 画像の <img> リクエストには URL のトークンが付かないので、デッキ・リモコンを開いたブラウザに
-  // Cookie で渡す。Cookie はポートで分かれないので、名前にポートを入れて複数の serve を区別する
+  // Cookie で渡す。Cookie はポートで分かれず、同じホストの別のポートのサーバにも送られるので、
+  // 値はトークンではなく画像を読むためだけの別の鍵にする。名前にポートを入れて複数の serve を区別する
+  const imageKey = randomUUID()
   const cookieName = () => `ippon-${port}`
-  const cookie = () => `${cookieName()}=${token}; Path=/; HttpOnly; SameSite=Strict`
+  const cookie = () => `${cookieName()}=${imageKey}; Path=/; HttpOnly; SameSite=Strict`
   const hasCookie = (req: IncomingMessage) =>
-    (req.headers.cookie || '').split(/;\s*/).includes(`${cookieName()}=${token}`)
+    (req.headers.cookie || '').split(/;\s*/).includes(`${cookieName()}=${imageKey}`)
 
   // SSE の購読者と、途中参加に即返す最新 state
   const clients = new Set<ServerResponse>()
