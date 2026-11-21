@@ -55,7 +55,10 @@ export interface ServeResult {
   server: Server
   port: number
   token: string
-  /** 発表者がこの PC で開く URL（トークン付き） */
+  /**
+   * 発表者がこの PC で開く URL（トークン付き）。サーバは IPv4（0.0.0.0）で待ち受けるので、localhost だと
+   * ::1 に先に繋ぐ環境で、同じポートの ::1 で待ち受ける別プロセスにトークンを送ってしまう。127.0.0.1 にする
+   */
   deckUrl: string
   /** スマホで開くリモコン URL（LAN IP ごと、トークン付き） */
   remoteUrls: string[]
@@ -273,7 +276,7 @@ export async function serve(input: string, opts: ServeOptions = {}): Promise<Ser
       if (path === '/' || path === '/index.html') {
         if (!authed) return end(res, 403, 'このページは ippon serve が表示する URL から開いてください')
         const ips = lanIps()
-        const remoteUrl = `http://${ips[0] || 'localhost'}:${port}/remote?t=${token}`
+        const remoteUrl = `http://${ips[0] || '127.0.0.1'}:${port}/remote?t=${token}`
         const config =
           `<script>window.__ippon=${safeJson({ token, remoteUrl, qr: qrSvg(remoteUrl, 4) })}</script>\n`
         let html = render(readMd(), { baseDir, outDir: baseDir, css: readCss() }).html
@@ -336,12 +339,12 @@ export async function serve(input: string, opts: ServeOptions = {}): Promise<Ser
   })
 
   const ips = lanIps()
-  const remoteUrls = (ips.length ? ips : ['localhost']).map((ip) => `http://${ip}:${port}/remote?t=${token}`)
+  const remoteUrls = (ips.length ? ips : ['127.0.0.1']).map((ip) => `http://${ip}:${port}/remote?t=${token}`)
   return {
     server,
     port,
     token,
-    deckUrl: `http://localhost:${port}/?t=${token}`,
+    deckUrl: `http://127.0.0.1:${port}/?t=${token}`,
     remoteUrls,
     qrSvg: qrSvg(remoteUrls[0]!, 4),
     currentUrl: `http://127.0.0.1:${port}/__current-slide`,
