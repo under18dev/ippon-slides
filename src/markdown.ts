@@ -76,16 +76,19 @@ export function inline(text: string): string {
   // 太字・斜体・矢印の置き換えが <img alt=""> や href="" の中に入って属性を壊さないように
   const held: string[] = []
   const hold = (html: string) => `\u0000${held.push(html) - 1}\u0000`
+  // 属性値に入る退避済みのもの（alt の `code` など）は、タグを外した中身（エスケープ済み）に戻す
+  const attr = (v: string) => v.replace(/\u0000(\d+)\u0000/g, (_, i: string) => held[Number(i)]!.replace(/<[^>]*>/g, ''))
   let s = text.replace(/\u0000/g, '').replace(/`([^`]+)`/g, (_, c: string) => hold(`<code>${esc(c)}</code>`))
   s = esc(s)
   s = s.replace(
     /!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;([^&]*)&quot;)?\)/g,
     (_, alt: string, src: string, title: string | undefined) =>
-      hold(`<img src="${src}" alt="${alt}">`) + (title ? `<span class="img-caption">${title}</span>` : '')
+      hold(`<img src="${attr(src)}" alt="${attr(alt)}">`) + (title ? `<span class="img-caption">${title}</span>` : '')
   )
-  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (all, label: string, href: string) =>
-    safeLink(href) ? hold(`<a href="${href}" target="_blank" rel="noopener">`) + label + hold('</a>') : label
-  )
+  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (all, label: string, href: string) => {
+    const url = attr(href)
+    return safeLink(url) ? hold(`<a href="${url}" target="_blank" rel="noopener">`) + label + hold('</a>') : label
+  })
   s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
   s = s.replace(/(^|[^*])\*([^*\s][^*]*?)\*/g, '$1<em>$2</em>')
   s = s.replace(/→/g, '<span class="arrow">→</span>')

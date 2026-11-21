@@ -112,6 +112,13 @@ test('インライン: → や * を含む画像・リンクでも属性が壊�
   assert.match(s, /<a href="https:\/\/e.x\/a→b\/\*c\*" target="_blank" rel="noopener"><strong>x<\/strong> <span class="arrow">→<\/span><\/a>/)
 })
 
+test('インライン: 画像の alt・リンクの URL の中のインラインコードは中身の文字にする', () => {
+  const [s = ''] = parse('![Run `npm test` <x>](a.png) [l](`https://e.x/`) [m](`javascript:alert(1)`)\n').sections
+  assert.match(s, /<img src="a.png" alt="Run npm test &lt;x&gt;">/)
+  assert.match(s, /<a href="https:\/\/e.x\/" target="_blank" rel="noopener">l<\/a>/)
+  assert.doesNotMatch(s, /\u0000|href="javascript/)
+})
+
 test('コード: ハイライトと !! 行の強調', () => {
   const [s = ''] = parse('```hcl\nvariable "x" {}\n!! output "y" {}\n```\n').sections
   assert.match(s, /<span class="hl-k">variable<\/span> <span class="hl-s">&quot;x&quot;<\/span>/)
