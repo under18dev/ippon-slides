@@ -67,23 +67,29 @@ export const httpKey = (s: HttpSpec): string => `${s.method} ${s.url}`
 // inline
 // ---------------------------------------------------------------
 
+/** リンクに出さないスキーム（クリックでスクリプトが動く）。ブラウザと同じく空白・制御文字は無視して見る */
+const UNSAFE_LINK = /^(?:javascript|vbscript|data):/i
+const safeLink = (url: string): boolean => !UNSAFE_LINK.test(url.replace(/[\u0000-\u0020]/g, ''))
+
 export function inline(text: string): string {
-  const codes: string[] = []
-  let s = text.replace(/`([^`]+)`/g, (_, c: string) => {
-    codes.push(`<code>${esc(c)}</code>`)
-    return `\u0000${codes.length - 1}\u0000`
-  })
+  // タグ（コード・画像・リンク）はできた順に退避し、最後に戻す。
+  // 太字・斜体・矢印の置き換えが <img alt=""> や href="" の中に入って属性を壊さないように
+  const held: string[] = []
+  const hold = (html: string) => `\u0000${held.push(html) - 1}\u0000`
+  let s = text.replace(/\u0000/g, '').replace(/`([^`]+)`/g, (_, c: string) => hold(`<code>${esc(c)}</code>`))
   s = esc(s)
   s = s.replace(
     /!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;([^&]*)&quot;)?\)/g,
     (_, alt: string, src: string, title: string | undefined) =>
-      `<img src="${src}" alt="${alt}">` + (title ? `<span class="img-caption">${title}</span>` : '')
+      hold(`<img src="${src}" alt="${alt}">`) + (title ? `<span class="img-caption">${title}</span>` : '')
   )
-  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (all, label: string, href: string) =>
+    safeLink(href) ? hold(`<a href="${href}" target="_blank" rel="noopener">`) + label + hold('</a>') : label
+  )
   s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
   s = s.replace(/(^|[^*])\*([^*\s][^*]*?)\*/g, '$1<em>$2</em>')
   s = s.replace(/→/g, '<span class="arrow">→</span>')
-  return s.replace(/\u0000(\d+)\u0000/g, (_, i: string) => codes[Number(i)]!)
+  return s.replace(/\u0000(\d+)\u0000/g, (_, i: string) => held[Number(i)]!)
 }
 
 // ---------------------------------------------------------------
