@@ -86,8 +86,9 @@ editing the Markdown. `ippon current` finds the running `ippon serve` by itself,
   (`/` `/remote` `/events` `/cmd`) are not accessible.
 - `/__current-slide` needs no token, but in exchange it only accepts requests from this computer addressed to `localhost`
   (it also checks the `Host` header to block DNS rebinding from external sites).
-- The server is exposed on your LAN (static files such as images are served without a token). Don't run it
-  on a network you don't want it exposed to.
+- Slide images are served only to browsers that opened the deck or the remote (they get a cookie then).
+  Only images inside the Markdown's folder are served; symlinks pointing outside it are not followed.
+- The server is exposed on your LAN and the traffic is not encrypted (HTTP). Don't run it on a network you don't want it exposed to.
 
 ## Options
 

@@ -97,6 +97,28 @@ test('インライン: 太字・コード・リンク・矢印・HTML エスケ�
   assert.match(s, /&lt;b&gt;/)
 })
 
+test('インライン: javascript: などのリンクはリンクにしない', () => {
+  for (const u of ['javascript:alert%281%29', 'JavaScript:x', 'vbscript:x', '\u0001javascript:x', 'data:text/html,x']) {
+    const [s = ''] = parse(`[l](${u})\n`).sections
+    assert.doesNotMatch(s, /<a /, u)
+    assert.match(s, /<p>l<\/p>/)
+  }
+  assert.match(parse('[l](mailto:a@e.x)\n').sections[0]!, /<a href="mailto:a@e.x"/)
+})
+
+test('インライン: → や * を含む画像・リンクでも属性が壊れない', () => {
+  const [s = ''] = parse('![前 → 後](a.png) [**x** →](https://e.x/a→b/*c*)\n').sections
+  assert.match(s, /<img src="a.png" alt="前 → 後">/)
+  assert.match(s, /<a href="https:\/\/e.x\/a→b\/\*c\*" target="_blank" rel="noopener"><strong>x<\/strong> <span class="arrow">→<\/span><\/a>/)
+})
+
+test('インライン: 画像の alt・リンクの URL の中のインラインコードは中身の文字にする', () => {
+  const [s = ''] = parse('![Run `npm test` <x>](a.png) [l](`https://e.x/`) [m](`javascript:alert(1)`)\n').sections
+  assert.match(s, /<img src="a.png" alt="Run npm test &lt;x&gt;">/)
+  assert.match(s, /<a href="https:\/\/e.x\/" target="_blank" rel="noopener">l<\/a>/)
+  assert.doesNotMatch(s, /\u0000|href="javascript/)
+})
+
 test('コード: ハイライトと !! 行の強調', () => {
   const [s = ''] = parse('```hcl\nvariable "x" {}\n!! output "y" {}\n```\n').sections
   assert.match(s, /<span class="hl-k">variable<\/span> <span class="hl-s">&quot;x&quot;<\/span>/)
