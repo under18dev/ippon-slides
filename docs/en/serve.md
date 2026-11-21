@@ -74,7 +74,7 @@ editing the Markdown. `ippon current` finds the running `ippon serve` by itself,
 To read it with `curl` directly, use the command `ippon serve` prints when it starts:
 
 ```sh
-curl -s -H 'x-ippon-key: <key printed at startup>' http://localhost:3030/__current-slide
+curl -s -H 'x-ippon-key: <key printed at startup>' http://127.0.0.1:3030/__current-slide
 ```
 
 ## How it works

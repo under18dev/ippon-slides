@@ -74,7 +74,7 @@ Markdown を直します。`ippon current` は起動中の `ippon serve` を自�
 `curl` で直接読むときは、`ippon serve` の起動時に表示されるコマンドを使ってください。
 
 ```sh
-curl -s -H 'x-ippon-key: <起動時に表示される鍵>' http://localhost:3030/__current-slide
+curl -s -H 'x-ippon-key: <起動時に表示される鍵>' http://127.0.0.1:3030/__current-slide
 ```
 
 ## 仕組み
