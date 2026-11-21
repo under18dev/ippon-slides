@@ -208,10 +208,15 @@ test('ハイライト: 長い 1 行でも行の長さに比例する時間で終
   for (const lang of ['yaml', 'py', 'go', 'rust', 'css', 'html', 'diff', 'js', 'sh', 'hcl', 'json']) {
     lines.push(['x = ' + '1'.repeat(20000) + 'x', lang], ['a ' + 'b: c '.repeat(5000), lang])
   }
-  for (const [line, lang] of lines) {
+  // 1 回目は V8 が正規表現をインタプリタで動かしてからコンパイルするので遅く、負荷によって 200ms を超える。
+  // 2 回測って速い方で判定する（二乗で遅くなっていれば、どちらも遅い）
+  const time = (line: string, lang: string) => {
     const t = performance.now()
     highlight(line, lang)
-    const ms = performance.now() - t
+    return performance.now() - t
+  }
+  for (const [line, lang] of lines) {
+    const ms = Math.min(time(line, lang), time(line, lang))
     assert.ok(ms < 200, `${lang}: ${line.slice(0, 20)}… に ${Math.round(ms)}ms`)
   }
   assert.match(highlight(yaml, 'yaml'), /^<span class="hl-t">description<\/span>: some normal words /)
