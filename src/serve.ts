@@ -5,13 +5,14 @@
 //   - GET /events?t=TOKEN   SSE。state / コマンドを全クライアントへ配信
 //   - POST /cmd?t=TOKEN     コマンド送信（go / timer / state）
 //   - GET /__current-slide  いま表示中のスライドと選択中の文字列（この PC からだけ、トークン不要）
-//   - それ以外              Markdown のあるディレクトリから静的配信（画像など）
+//   - それ以外              Markdown のあるディレクトリから静的配信（画像だけ。デッキかリモコンを開いた
+//                           ブラウザに渡す Cookie かトークンが要る）
 //
 // 通信は SSE + fetch POST の小さな pub/sub だけ。WebSocket も外部依存も使わない。
 // Markdown / --css を書き換えると reload を配信する（デッキは変わったスライドだけ差し替え、リモコンは読み込み直す）。
 
 import { randomUUID } from 'node:crypto'
-import { readFileSync, statSync, watch } from 'node:fs'
+import { readFileSync, realpathSync, statSync, watch } from 'node:fs'
 import { createServer } from 'node:http'
 import type { IncomingMessage, Server, ServerResponse } from 'node:http'
 import { networkInterfaces } from 'node:os'
@@ -39,7 +40,7 @@ const MIME: Record<string, string> = {
   '.ico': 'image/x-icon',
 }
 
-// トークン無しで静的配信してよいのはデッキが <img> で読む画像系だけ。
+// 静的配信するのはデッキが <img> で読む画像系だけ。
 // .json / .html / .js / .css / .md などは（隣に置かれた設定・秘密・発表者ノートを
 // 漏らさないよう）配信しない。
 const STATIC_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.avif', '.ico'])
@@ -77,6 +78,12 @@ export interface CurrentSlide {
   source: string
   /** デッキで選択中の文字列（無ければ ''） */
   selection: string
+}
+
+// 画像を直接開いても（SVG の）スクリプトが動かないようにする。<img> で読むときには効かない
+const STATIC_HEADERS = {
+  'content-security-policy': "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox",
+  'x-content-type-options': 'nosniff',
 }
 
 const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1'])
@@ -152,6 +159,7 @@ button{font:inherit;color:#fff;background:#2a2a2e;border:1px solid rgba(255,255,
 export async function serve(input: string, opts: ServeOptions = {}): Promise<ServeResult> {
   const mdFile = resolve(input)
   const baseDir = dirname(mdFile)
+  const realBase = realpathSync(baseDir)
   const token = randomUUID()
   // 編集を反映するため、Markdown と CSS はリクエストのたびに読み直す
   const readMd = () => readFileSync(mdFile, 'utf8')
@@ -159,6 +167,14 @@ export async function serve(input: string, opts: ServeOptions = {}): Promise<Ser
   readMd()
   readCss()
   let port = 0
+  // 画像の <img> リクエストには URL のトークンが付かないので、デッキ・リモコンを開いたブラウザに
+  // Cookie で渡す。Cookie はポートで分かれず、同じホストの別のポートのサーバにも送られるので、
+  // 値はトークンではなく画像を読むためだけの別の鍵にする。名前にポートを入れて複数の serve を区別する
+  const imageKey = randomUUID()
+  const cookieName = () => `ippon-${port}`
+  const cookie = () => `${cookieName()}=${imageKey}; Path=/; HttpOnly; SameSite=Strict`
+  const hasCookie = (req: IncomingMessage) =>
+    (req.headers.cookie || '').split(/;\s*/).includes(`${cookieName()}=${imageKey}`)
 
   // SSE の購読者と、途中参加に即返す最新 state
   const clients = new Set<ServerResponse>()
@@ -236,6 +252,7 @@ export async function serve(input: string, opts: ServeOptions = {}): Promise<Ser
         if (!authed) return end(res, 403, 'このページは ippon serve の QR から開いてください')
         const { meta, notes, sections } = parse(readMd())
         const html = remotePage(token, notes, sections.length, meta.title || 'slides')
+        res.setHeader('set-cookie', cookie())
         return end(res, 200, html, 'text/html; charset=utf-8')
       }
 
@@ -248,20 +265,25 @@ export async function serve(input: string, opts: ServeOptions = {}): Promise<Ser
           `<script>window.__ippon=${safeJson({ token, remoteUrl, qr: qrSvg(remoteUrl, 4) })}</script>\n`
         let html = render(readMd(), { baseDir, outDir: baseDir, css: readCss() }).html
         html = html.replace('<script id="notes"', config + '<script id="notes"')
+        res.setHeader('set-cookie', cookie())
         return end(res, 200, html, 'text/html; charset=utf-8')
       }
 
       // ---- 静的ファイル（画像） ----
-      // トークン無しで配信するので、画像系（STATIC_EXT）だけに限定する。
+      // デッキかリモコンを開いたブラウザ（Cookie）だけに、画像系（STATIC_EXT）だけを配信する。
+      if (!authed && !hasCookie(req)) return end(res, 403, 'forbidden')
       const rel = normalize(path).replace(/^(\.\.(\/|\\|$))+/, '')
       const file = join(baseDir, rel)
       if (file !== baseDir && !file.startsWith(baseDir + sep)) return end(res, 403, 'forbidden')
       const ext = (file.match(/\.[^.]+$/)?.[0] || '').toLowerCase()
       if (!STATIC_EXT.has(ext)) return end(res, 404, 'not found')
       try {
-        if (statSync(file).isFile()) {
-          res.writeHead(200, { 'content-type': MIME[ext]! })
-          res.end(readFileSync(file))
+        // シンボリックリンクでフォルダの外を指していたら配信しない
+        const real = realpathSync(file)
+        if (!real.startsWith(realBase + sep)) return end(res, 403, 'forbidden')
+        if (statSync(real).isFile()) {
+          res.writeHead(200, { 'content-type': MIME[ext]!, ...STATIC_HEADERS })
+          res.end(readFileSync(real))
           return
         }
       } catch {
