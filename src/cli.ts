@@ -138,6 +138,11 @@ export function outputs(
 
 const time = () => new Date().toLocaleTimeString()
 
+/** 出力先が入力の Markdown 自身なら止める（HTML / PDF / PNG で上書きされて原稿が消える） */
+function guardOutput(input: string, out: string): void {
+  if (real(out) === real(input)) throw new Error(`出力先が入力の Markdown と同じです（上書きすると原稿が消えます）: ${out}`)
+}
+
 async function build(input: string, opts: Options): Promise<void> {
   const md = readFileSync(input, 'utf8')
   const css = opts.css ? readFileSync(opts.css, 'utf8') : ''
@@ -151,7 +156,9 @@ async function build(input: string, opts: Options): Promise<void> {
     console.log(`${time()}   ↳ ${specs.length} 件の HTTP リクエストを取得${failed ? `（${failed} 件失敗）` : ''}`)
   }
 
-  for (const { format, path } of outputs(input, opts)) {
+  const targets = outputs(input, opts)
+  for (const { path } of targets) guardOutput(input, path)
+  for (const { format, path } of targets) {
     mkdirSync(dirname(path), { recursive: true })
     if (format === 'html') {
       // ippon ogp が書き出す画像。URL として解決するので、# や ? を含む名前でも壊れないようエンコードする
@@ -203,6 +210,7 @@ async function ogp(input: string, opts: Options): Promise<void> {
   const dirLike =
     output && (output.endsWith('/') || output.endsWith('\\') || (existsSync(output) && statSync(output).isDirectory()))
   const out = resolve(!output ? join(dirname(input), name) : dirLike ? join(output, name) : output)
+  guardOutput(input, out)
   mkdirSync(dirname(out), { recursive: true })
   // 画像は file:// URL で読ませる（PDF と同じ）
   const { html } = render(md, { baseDir: dirname(resolve(input)), css })
