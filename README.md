@@ -277,3 +277,5 @@ Yusuke Wada さんの個人用のスライドアプリに着想を得ていま�
 ## License
 
 MIT
+
+`src/qr.ts` の Reed-Solomon 符号とモジュールの配置は [Project Nayuki の QR Code generator library](https://www.nayuki.io/page/qr-code-generator-library)（MIT License）を踏襲しています。著作権表示と許諾表示はファイルの先頭にあります。
