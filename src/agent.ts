@@ -6,7 +6,7 @@
 // ippon serve はポートが毎回変わるので、起動中のサーバを ~/.ippon/serve/<port>.json に登録しておき、
 // ippon current はそこから探す（IPPON_STATE_DIR で場所を変えられる。テスト用）。
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, relative, resolve, sep } from 'node:path'
 
@@ -176,12 +176,31 @@ description: ippon（ippon-slides）の Markdown スライドを編集する。�
 - \`::qr url=...::\` で QR コード、\`::http method=GET url=...::\` で HTTP リクエストのプレイグラウンド。
 `
 
+/**
+ * dir から SKILL.md までの途中（.claude・skills・ippon-slides・SKILL.md）にシンボリックリンクがあれば止める。
+ * clone したリポジトリに仕込まれたリンクを辿って、リポジトリの外のファイルを書き換えないように
+ */
+function refuseSymlinks(dir: string, parts: string[]): void {
+  let p = dir
+  for (const part of parts) {
+    p = join(p, part)
+    let link = false
+    try {
+      link = lstatSync(p).isSymbolicLink()
+    } catch {
+      return // ここから先はまだ無い（これから作る）
+    }
+    if (link) throw new Error(`${p} はシンボリックリンクなので書き込みません`)
+  }
+}
+
 /** `ippon skills init`：SKILL.md を書き出し、書いた / 飛ばしたパスを返す */
 export function skillsInit(dir: string, force = false): { written: string[]; skipped: string[] } {
   const written: string[] = []
   const skipped: string[] = []
   for (const base of SKILL_DIRS) {
     const path = join(dir, base, SKILL_NAME, 'SKILL.md')
+    refuseSymlinks(dir, [...base.split('/'), SKILL_NAME, 'SKILL.md'])
     if (existsSync(path) && !force) {
       skipped.push(path)
       continue
