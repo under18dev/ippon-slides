@@ -17,7 +17,8 @@ function put(head: Head, match: (e: HeadEntry) => boolean, entry: HeadEntry) {
   else head.push(entry)
 }
 const meta = (property: string) => (e: HeadEntry) => e.tag === 'meta' && e.attrs?.property === property
-const jsonLd = (data: object): HeadEntry => ({ tag: 'script', attrs: { type: 'application/ld+json' }, content: JSON.stringify(data) })
+// Starlight は content をそのまま <script> に入れるので、本文の </script> で抜けないよう < をエスケープする
+const jsonLd = (data: object): HeadEntry => ({ tag: 'script', attrs: { type: 'application/ld+json' }, content: JSON.stringify(data).replace(/</g, '\\u003c') })
 
 /** Markdown を構造化データ用のただの文に（リンク・コード・強調の記号を外す） */
 const plain = (md: string) =>
