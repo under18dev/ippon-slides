@@ -6,7 +6,7 @@
 // ippon serve はポートが毎回変わるので、起動中のサーバを ~/.ippon/serve/<port>.json に登録しておき、
 // ippon current はそこから探す（IPPON_STATE_DIR で場所を変えられる。テスト用）。
 
-import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, relative, resolve, sep } from 'node:path'
 
@@ -31,7 +31,11 @@ export function register(entry: ServeEntry): () => void {
   const dir = stateDir()
   const path = join(dir, `${entry.port}.json`)
   mkdirSync(dir, { recursive: true, mode: 0o700 })
-  writeFileSync(path, JSON.stringify(entry) + '\n', { mode: 0o600 })
+  // mode は新しく作るときにしか効かない。古い版が残した 0755 のディレクトリ・0644 のファイルにも
+  // 鍵を書くので、ディレクトリは絞り直し、ファイルは消してから新しく作る
+  chmodSync(dir, 0o700)
+  rmSync(path, { force: true })
+  writeFileSync(path, JSON.stringify(entry) + '\n', { mode: 0o600, flag: 'wx' })
   return () => rmSync(path, { force: true })
 }
 

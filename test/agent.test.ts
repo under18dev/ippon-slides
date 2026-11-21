@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFile, spawn } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { after, test } from 'node:test'
@@ -42,6 +42,18 @@ test('register / entries: 終了したプロセスと壊れた登録は掃除す
   if (process.platform !== 'win32') assert.equal(statSync(join(state, '4001.json')).mode & 0o777, 0o600)
   unregister()
   assert.deepEqual(entries(), [])
+})
+
+test('register: 古い版が残した 0644 のファイル・0755 のディレクトリでも、本人だけが読めるように書き直す', { skip: process.platform === 'win32' }, () => {
+  mkdirSync(state, { recursive: true })
+  chmodSync(state, 0o755)
+  writeFileSync(join(state, '4005.json'), '{}', { mode: 0o644 })
+  chmodSync(join(state, '4005.json'), 0o644)
+  const unregister = register(entry({ port: 4005 }))
+  assert.equal(statSync(state).mode & 0o777, 0o700)
+  assert.equal(statSync(join(state, '4005.json')).mode & 0o777, 0o600)
+  assert.equal(JSON.parse(readFileSync(join(state, '4005.json'), 'utf8')).key, 'k')
+  unregister()
 })
 
 test('skills init: .claude/skills と .agents/skills に SKILL.md を置き、既存は --force で上書き', () => {
