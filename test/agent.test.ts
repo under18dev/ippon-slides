@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFile, spawn } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { after, test } from 'node:test'
@@ -14,7 +14,7 @@ const state = join(dir, 'state')
 process.env.IPPON_STATE_DIR = state
 after(() => rmSync(dir, { recursive: true, force: true }))
 
-const entry = (o: Partial<ServeEntry>): ServeEntry => ({ port: 1, file: '/a/x.md', pid: process.pid, startedAt: 0, ...o })
+const entry = (o: Partial<ServeEntry>): ServeEntry => ({ port: 1, file: '/a/x.md', pid: process.pid, startedAt: 0, key: 'k', ...o })
 
 test('pick: 指定した Markdown > cwd 配下の新しいもの > 一番新しいもの', () => {
   const list = [
@@ -38,6 +38,8 @@ test('register / entries: 終了したプロセスと壊れた登録は掃除す
     [4001]
   )
   assert.deepEqual(readdirSync(state), ['4001.json'])
+  // /__current-slide の鍵が入るので本人だけが読める
+  if (process.platform !== 'win32') assert.equal(statSync(join(state, '4001.json')).mode & 0o777, 0o600)
   unregister()
   assert.deepEqual(entries(), [])
 })

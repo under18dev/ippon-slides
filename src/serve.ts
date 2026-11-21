@@ -4,7 +4,7 @@
 //   - GET /remote?t=TOKEN   スマホのリモコン画面
 //   - GET /events?t=TOKEN   SSE。state / コマンドを全クライアントへ配信
 //   - POST /cmd?t=TOKEN     コマンド送信（go / timer / state）
-//   - GET /__current-slide  いま表示中のスライドと選択中の文字列（この PC からだけ、トークン不要）
+//   - GET /__current-slide  いま表示中のスライドと選択中の文字列（この PC からだけ。x-ippon-key ヘッダに agentKey が要る）
 //   - それ以外              Markdown のあるディレクトリから静的配信（画像だけ。デッキかリモコンを開いた
 //                           ブラウザに渡す Cookie かトークンが要る）
 //
@@ -63,6 +63,12 @@ export interface ServeResult {
   qrSvg: string
   /** いま表示中のスライドを返す URL（コーディングエージェント向け。この PC からだけ） */
   currentUrl: string
+  /**
+   * currentUrl に x-ippon-key ヘッダで渡す鍵。トークンとは別にし、本人だけが読める状態ファイルに置く。
+   * ::http:: のビルド時取得（同じ PC の Node から localhost に届く）では付けられないので、別のデッキを
+   * build しても表示中のスライドを焼き込まれない
+   */
+  agentKey: string
 }
 
 /** /__current-slide の応答 */
@@ -171,6 +177,8 @@ export async function serve(input: string, opts: ServeOptions = {}): Promise<Ser
   // Cookie で渡す。Cookie はポートで分かれず、同じホストの別のポートのサーバにも送られるので、
   // 値はトークンではなく画像を読むためだけの別の鍵にする。名前にポートを入れて複数の serve を区別する
   const imageKey = randomUUID()
+  // /__current-slide の鍵（ippon current が状態ファイルから読んで付ける）
+  const agentKey = randomUUID()
   const cookieName = () => `ippon-${port}`
   const cookie = () => `${cookieName()}=${imageKey}; Path=/; HttpOnly; SameSite=Strict`
   const hasCookie = (req: IncomingMessage) =>
@@ -229,7 +237,7 @@ export async function serve(input: string, opts: ServeOptions = {}): Promise<Ser
 
       // ---- いま表示中のスライド（コーディングエージェント向け） ----
       if (path === '/__current-slide') {
-        if (!authed && !isLocal(req)) return end(res, 403, 'forbidden')
+        if (!authed && !(isLocal(req) && req.headers['x-ippon-key'] === agentKey)) return end(res, 403, 'forbidden')
         const state = lastState ? (JSON.parse(lastState) as { idx?: unknown; sel?: unknown }) : null
         if (!state || typeof state.idx !== 'number')
           return json(res, 404, { error: 'デッキがまだ開かれていません。ippon serve が表示した URL をブラウザで開いてください' })
@@ -334,6 +342,7 @@ export async function serve(input: string, opts: ServeOptions = {}): Promise<Ser
     remoteUrls,
     qrSvg: qrSvg(remoteUrls[0]!, 4),
     currentUrl: `http://localhost:${port}/__current-slide`,
+    agentKey,
   }
 }
 

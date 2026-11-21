@@ -20,16 +20,18 @@ export interface ServeEntry {
   file: string
   pid: number
   startedAt: number
+  /** /__current-slide に x-ippon-key ヘッダで渡す鍵（ServeResult.agentKey） */
+  key: string
 }
 
 const stateDir = (): string => process.env.IPPON_STATE_DIR || join(homedir(), '.ippon', 'serve')
 
-/** 起動中のサーバとして登録する。戻り値を呼ぶと登録を消す */
+/** 起動中のサーバとして登録する。鍵が入るので本人だけが読めるようにする。戻り値を呼ぶと登録を消す */
 export function register(entry: ServeEntry): () => void {
   const dir = stateDir()
   const path = join(dir, `${entry.port}.json`)
-  mkdirSync(dir, { recursive: true })
-  writeFileSync(path, JSON.stringify(entry) + '\n')
+  mkdirSync(dir, { recursive: true, mode: 0o700 })
+  writeFileSync(path, JSON.stringify(entry) + '\n', { mode: 0o600 })
   return () => rmSync(path, { force: true })
 }
 
@@ -93,7 +95,7 @@ export async function current(cwd: string, input?: string): Promise<string> {
         ? `${input} を配信している ippon serve が見つかりません（先に ippon serve ${input} を起動してください）`
         : 'ippon serve が見つかりません（先に ippon serve slide.md を起動してください）'
     )
-  const res = await fetch(`http://localhost:${e.port}/__current-slide`)
+  const res = await fetch(`http://localhost:${e.port}/__current-slide`, { headers: { 'x-ippon-key': e.key } })
   const body = await res.text()
   if (!res.ok) {
     let msg = body
