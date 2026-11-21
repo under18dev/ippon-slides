@@ -211,6 +211,21 @@ test('Markdown を書き換えると SSE で reload を配信し、/ も新し�
   assert.match((await get('/?t=' + r.token)).body, /書き換えたタイトル/)
 })
 
+test('POST /cmd の JSON に改行があっても、SSE には 1 つの JSON として届く', async () => {
+  const ac = new AbortController()
+  const es = await fetch(base() + '/events?t=' + r.token, { signal: ac.signal })
+  const reader = es.body!.getReader()
+  const dec = new TextDecoder()
+  let buf = ''
+  while (!buf.includes('retry:')) buf += dec.decode((await reader.read()).value)
+  buf = ''
+  await fetch(base() + '/cmd?t=' + r.token, { method: 'POST', body: JSON.stringify({ type: 'go', n: 1 }, null, 2) })
+  while (!buf.includes('"go"')) buf += dec.decode((await reader.read()).value)
+  ac.abort()
+  const data = buf.split('\n').find((l) => l.includes('"go"'))!
+  assert.equal(data, 'data: {"type":"go","n":1}')
+})
+
 test('/remote の <title> は frontmatter の title をエスケープする', async () => {
   const dir2 = mkdtempSync(join(tmpdir(), 'ippon-serve-'))
   const md2 = join(dir2, 'd.md')
