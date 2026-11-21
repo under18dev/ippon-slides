@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFile, spawn } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { after, test } from 'node:test'
@@ -53,6 +53,26 @@ test('skills init: .claude/skills と .agents/skills に SKILL.md を置き、�
   assert.equal(readFileSync(paths[0]!, 'utf8'), 'カスタマイズ済み')
   assert.deepEqual(skillsInit(root, true).written, paths)
   assert.equal(readFileSync(paths[0]!, 'utf8'), SKILL)
+})
+
+test('skills init: 途中にシンボリックリンクがあれば書かない（リポジトリの外を書き換えない）', () => {
+  const outside = join(dir, 'outside')
+  mkdirSync(outside)
+  writeFileSync(join(outside, 'mine'), 'MINE')
+  const cases: [string, string][] = [
+    ['.claude/skills/ippon-slides/SKILL.md', join(outside, 'mine')], // 既存ファイルへ（--force でも）
+    ['.claude/skills/ippon-slides/SKILL.md', join(outside, 'planted')], // 壊れたリンク
+    ['.agents/skills/ippon-slides', outside], // ディレクトリ
+    ['.claude', outside],
+  ]
+  cases.forEach(([link, target], i) => {
+    const root = join(dir, `evil${i}`)
+    mkdirSync(join(root, link, '..'), { recursive: true })
+    symlinkSync(target, join(root, link))
+    assert.throws(() => skillsInit(root, true), /シンボリックリンク/)
+  })
+  assert.equal(readFileSync(join(outside, 'mine'), 'utf8'), 'MINE')
+  assert.deepEqual(readdirSync(outside), ['mine'])
 })
 
 test('SKILL.md は name / description の frontmatter を持ち、ippon current を使う', () => {
