@@ -17,6 +17,7 @@ import type { IncomingMessage, Server, ServerResponse } from 'node:http'
 import { networkInterfaces } from 'node:os'
 import { dirname, join, normalize, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { esc } from './highlight.ts'
 import { parse, slideLines } from './markdown.ts'
 import { qrSvg } from './qr.ts'
 import { render } from './render.ts'
@@ -110,7 +111,7 @@ function remotePage(token: string, notes: string[], total: number, title: string
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="color-scheme" content="dark">
-<title>${title} — リモコン</title>
+<title>${esc(title)} — リモコン</title>
 <style>
 :root{--acc:#ff6a00}
 *{box-sizing:border-box}
