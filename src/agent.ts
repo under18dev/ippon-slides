@@ -6,7 +6,7 @@
 // ippon serve はポートが毎回変わるので、起動中のサーバを ~/.ippon/serve/<port>.json に登録しておき、
 // ippon current はそこから探す（IPPON_STATE_DIR で場所を変えられる。テスト用）。
 
-import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, relative, resolve, sep } from 'node:path'
 
@@ -20,16 +20,22 @@ export interface ServeEntry {
   file: string
   pid: number
   startedAt: number
+  /** /__current-slide に x-ippon-key ヘッダで渡す鍵（ServeResult.agentKey） */
+  key: string
 }
 
 const stateDir = (): string => process.env.IPPON_STATE_DIR || join(homedir(), '.ippon', 'serve')
 
-/** 起動中のサーバとして登録する。戻り値を呼ぶと登録を消す */
+/** 起動中のサーバとして登録する。鍵が入るので本人だけが読めるようにする。戻り値を呼ぶと登録を消す */
 export function register(entry: ServeEntry): () => void {
   const dir = stateDir()
   const path = join(dir, `${entry.port}.json`)
-  mkdirSync(dir, { recursive: true })
-  writeFileSync(path, JSON.stringify(entry) + '\n')
+  mkdirSync(dir, { recursive: true, mode: 0o700 })
+  // mode は新しく作るときにしか効かない。古い版が残した 0755 のディレクトリ・0644 のファイルにも
+  // 鍵を書くので、ディレクトリは絞り直し、ファイルは消してから新しく作る
+  chmodSync(dir, 0o700)
+  rmSync(path, { force: true })
+  writeFileSync(path, JSON.stringify(entry) + '\n', { mode: 0o600, flag: 'wx' })
   return () => rmSync(path, { force: true })
 }
 
@@ -93,7 +99,9 @@ export async function current(cwd: string, input?: string): Promise<string> {
         ? `${input} を配信している ippon serve が見つかりません（先に ippon serve ${input} を起動してください）`
         : 'ippon serve が見つかりません（先に ippon serve slide.md を起動してください）'
     )
-  const res = await fetch(`http://localhost:${e.port}/__current-slide`)
+  // serve は IPv4（0.0.0.0）で待ち受ける。localhost だと ::1 に先に繋ぐ環境があり、他のユーザーが同じポートの
+  // ::1 で待ち受けていると鍵をそちらに送ってしまうので、127.0.0.1 に固定する
+  const res = await fetch(`http://127.0.0.1:${e.port}/__current-slide`, { headers: { 'x-ippon-key': e.key } })
   const body = await res.text()
   if (!res.ok) {
     let msg = body

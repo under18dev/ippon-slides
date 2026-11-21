@@ -149,12 +149,13 @@ test('/__current-slide は表示中のスライドの行範囲・Markdown・選�
   const srv = await serve(file, { port: 0 })
   try {
     const url = srv.currentUrl
-    assert.equal(url, `http://localhost:${srv.port}/__current-slide`)
+    assert.equal(url, `http://127.0.0.1:${srv.port}/__current-slide`)
+    const get = () => fetch(url, { headers: { 'x-ippon-key': srv.agentKey } })
     // デッキが state を送る前は 404
-    assert.equal((await fetch(url)).status, 404)
+    assert.equal((await get()).status, 404)
 
     await postState(srv, { idx: 1, sel: 'いち' })
-    const res = await fetch(url)
+    const res = await get()
     assert.equal(res.status, 200)
     assert.match(res.headers.get('content-type') || '', /application\/json/)
     assert.deepEqual(await res.json(), {
@@ -168,7 +169,7 @@ test('/__current-slide は表示中のスライドの行範囲・Markdown・選�
 
     // 書き換えた Markdown を読み直す
     writeFileSync(file, '# 1 枚目\n\n---\n\n## 2 枚目（改）\n')
-    const after = (await (await fetch(url)).json()) as { lines: unknown; source: string }
+    const after = (await (await get()).json()) as { lines: unknown; source: string }
     assert.deepEqual(after.lines, { start: 5, end: 5 })
     assert.equal(after.source, '## 2 枚目（改）')
   } finally {
@@ -177,10 +178,18 @@ test('/__current-slide は表示中のスライドの行範囲・Markdown・選�
   }
 })
 
+test('/__current-slide は鍵が無ければ、この PC からでも 403（::http:: のビルド時取得で読ませない）', async () => {
+  await postState(r, { idx: 0 })
+  assert.equal((await fetch(r.currentUrl)).status, 403)
+  assert.equal((await fetch(r.currentUrl, { headers: { 'x-ippon-key': r.token } })).status, 403)
+  assert.equal((await fetch(r.currentUrl, { headers: { 'x-ippon-key': r.agentKey } })).status, 200)
+})
+
 test('/__current-slide は localhost 以外の Host を拒否する（DNS リバインディング対策）', async () => {
   const { request } = await import('node:http')
   const status = await new Promise<number>((res, rej) => {
-    const req = request({ host: '127.0.0.1', port: r.port, path: '/__current-slide', headers: { host: 'evil.example' } }, (x) => {
+    const headers = { host: 'evil.example', 'x-ippon-key': r.agentKey }
+    const req = request({ host: '127.0.0.1', port: r.port, path: '/__current-slide', headers }, (x) => {
       x.resume()
       res(x.statusCode || 0)
     })

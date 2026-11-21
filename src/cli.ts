@@ -228,7 +228,7 @@ async function runServe(input: string, opts: Options): Promise<void> {
   }
   const r = await serve(input, { port, css: opts.css })
   // ippon current がこのサーバを見つけられるように登録しておく（終了時に消す）
-  const unregister = register({ port: r.port, file: real(input), pid: process.pid, startedAt: Date.now() })
+  const unregister = register({ port: r.port, file: real(input), pid: process.pid, startedAt: Date.now(), key: r.agentKey })
   process.on('exit', unregister)
   for (const sig of ['SIGINT', 'SIGTERM'] as const) process.once(sig, () => process.exit(sig === 'SIGINT' ? 130 : 143))
   console.log(qrTerminal(r.remoteUrls[0]!))
@@ -240,7 +240,7 @@ async function runServe(input: string, opts: Options): Promise<void> {
   console.log(`  ↑ の QR をスマホのカメラで読み取るとリモコンになります（PC と同じ Wi-Fi に接続）`)
   console.log(`  発表者ビュー（p）にも QR が出ます。Ctrl+C で終了`)
   console.log(``)
-  console.log(`  表示中のスライド: ippon current（または curl -s ${r.currentUrl}）`)
+  console.log(`  表示中のスライド: ippon current（または curl -s -H 'x-ippon-key: ${r.agentKey}' ${r.currentUrl}）`)
   console.log(`  （選択中の文字列と Markdown の行番号を返します。ippon skills init でエージェントに使い方を教えられます）`)
 }
 

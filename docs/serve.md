@@ -31,11 +31,11 @@ QR は次の場所にも出ます。
 
 ## コーディングエージェントと一緒に直す（`/__current-slide`）
 
-`ippon serve` 中は、いまブラウザに表示しているスライドを `/__current-slide` で取得できます。
+`ippon serve` 中は、いまブラウザに表示しているスライドを `ippon current`（中身は `/__current-slide`）で取得できます。
 デッキ上で文字を選択しておくと、その文字列も返ります。
 
 ```console
-$ curl -s http://localhost:3030/__current-slide
+$ ippon current
 {
   "file": "/Users/you/talk/slide.md",
   "slide": 3,
@@ -69,8 +69,13 @@ ippon skills init
 Markdown を直します。`ippon current` は起動中の `ippon serve` を自分で探すので、ポートを固定する必要はありません
 （[CLI リファレンス](cli.md#current)）。
 
-`/__current-slide` はトークン不要ですが、**この PC から `localhost` 宛てに来たリクエストだけ**に応えます
-（スマホや LAN の他の端末からは読めません）。
+`/__current-slide` はトークン不要ですが、**この PC から `localhost` 宛てに来た、`x-ippon-key` ヘッダ付きのリクエストだけ**に応えます
+（スマホや LAN の他の端末からは読めません）。鍵は起動のたびに変わり、`ippon current` が自動で付けます。
+`curl` で直接読むときは、`ippon serve` の起動時に表示されるコマンドを使ってください。
+
+```sh
+curl -s -H 'x-ippon-key: <起動時に表示される鍵>' http://127.0.0.1:3030/__current-slide
+```
 
 ## 仕組み
 
@@ -86,6 +91,8 @@ Markdown を直します。`ippon current` は起動中の `ippon serve` を自�
   デッキ・リモコン・配信（`/` `/remote` `/events` `/cmd`）にアクセスできません。
 - `/__current-slide` はトークン不要の代わりに、この PC から `localhost` 宛てに来たリクエストだけを受け付けます
   （`Host` ヘッダーも確認し、外部サイトからの DNS リバインディングを防ぎます）。
+  さらに `x-ippon-key` ヘッダの鍵が要ります。鍵は本人だけが読める `~/.ippon/serve/<port>.json` に置くので、
+  他人が書いた Markdown の `::http::` を build しても、表示中のスライドを読まれて HTML に焼き込まれることはありません。
 - スライドの画像は、デッキかリモコンを開いたブラウザ（そのとき渡す Cookie）にだけ配信します。
   配信するのは Markdown のあるフォルダの中の画像だけで、フォルダの外を指すシンボリックリンクは辿りません。
 - サーバは LAN に公開され、通信は暗号化されません（HTTP）。公開したくないネットワークでは実行しないでください。

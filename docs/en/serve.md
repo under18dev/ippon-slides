@@ -31,11 +31,11 @@ The QR code also appears in these places:
 
 ## Fix slides with a coding agent (`/__current-slide`)
 
-While `ippon serve` is running, `/__current-slide` returns the slide currently shown in the browser.
+While `ippon serve` is running, `ippon current` (backed by `/__current-slide`) returns the slide currently shown in the browser.
 If you select text in the deck, that text is returned too.
 
 ```console
-$ curl -s http://localhost:3030/__current-slide
+$ ippon current
 {
   "file": "/Users/you/talk/slide.md",
   "slide": 3,
@@ -69,8 +69,13 @@ From then on, when you ask "fix this", the agent reads the current slide and sel
 editing the Markdown. `ippon current` finds the running `ippon serve` by itself, so you don't need a fixed port
 ([CLI reference](cli.md#current)).
 
-`/__current-slide` needs no token, but it **only answers requests from this computer addressed to `localhost`**
-(your phone and other devices on the LAN cannot read it).
+`/__current-slide` needs no token, but it **only answers requests from this computer addressed to `localhost` that carry an `x-ippon-key` header**
+(your phone and other devices on the LAN cannot read it). The key changes on every start, and `ippon current` adds it for you.
+To read it with `curl` directly, use the command `ippon serve` prints when it starts:
+
+```sh
+curl -s -H 'x-ippon-key: <key printed at startup>' http://127.0.0.1:3030/__current-slide
+```
 
 ## How it works
 
@@ -86,6 +91,8 @@ editing the Markdown. `ippon current` finds the running `ippon serve` by itself,
   (`/` `/remote` `/events` `/cmd`) are not accessible.
 - `/__current-slide` needs no token, but in exchange it only accepts requests from this computer addressed to `localhost`
   (it also checks the `Host` header to block DNS rebinding from external sites).
+  It also needs the key in the `x-ippon-key` header. The key is stored in `~/.ippon/serve/<port>.json`, which only you can read,
+  so building someone else's Markdown with `::http::` cannot read the current slide and bake it into the HTML.
 - Slide images are served only to browsers that opened the deck or the remote (they get a cookie then).
   Only images inside the Markdown's folder are served; symlinks pointing outside it are not followed.
 - The server is exposed on your LAN and the traffic is not encrypted (HTTP). Don't run it on a network you don't want it exposed to.
