@@ -112,6 +112,24 @@ test('インライン: → や * を含む画像・リンクでも属性が壊�
   assert.match(s, /<a href="https:\/\/e.x\/a→b\/\*c\*" target="_blank" rel="noopener"><strong>x<\/strong> <span class="arrow">→<\/span><\/a>/)
 })
 
+test('インライン: 閉じない [ ( が並んでも行の長さに比例する時間で終わる', () => {
+  for (const md of ['[a]('.repeat(20_000), '[a'.repeat(20_000), '![a](b'.repeat(20_000), '![a'.repeat(20_000)]) {
+    const t = performance.now()
+    parse(md)
+    const ms = performance.now() - t
+    assert.ok(ms < 2000, `${md.slice(0, 6)}… に ${Math.round(ms)}ms`)
+  }
+  // 長い URL の画像・リンクもこれまでどおり
+  const url = 'https://e.x/' + 'a'.repeat(3000)
+  assert.match(parse(`[l](${url}) ![i](${url})\n`).sections[0]!, /<a href="https:\/\/e.x\/a+".*<img src="https:\/\/e.x\/a+"/)
+})
+
+test('引用: 深い入れ子でもスタックがあふれない（上限より深い > は文字のまま）', () => {
+  const [s = ''] = parse('> '.repeat(20_000) + 'x\n').sections
+  assert.equal(s.match(/<blockquote>/g)!.length, 17)
+  assert.match(parse('> > a\n').sections[0]!, /<blockquote><blockquote><p>a<\/p><\/blockquote><\/blockquote>/)
+})
+
 test('コード: ハイライトと !! 行の強調', () => {
   const [s = ''] = parse('```hcl\nvariable "x" {}\n!! output "y" {}\n```\n').sections
   assert.match(s, /<span class="hl-k">variable<\/span> <span class="hl-s">&quot;x&quot;<\/span>/)
