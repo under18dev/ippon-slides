@@ -71,6 +71,11 @@ export const httpKey = (s: HttpSpec): string => `${s.method} ${s.url}`
 const UNSAFE_LINK = /^(?:javascript|vbscript|data):/i
 const safeLink = (url: string): boolean => !UNSAFE_LINK.test(url.replace(/[\u0000-\u0020]/g, ''))
 
+// 画像・リンク。閉じない [ や ( が並ぶと、開始位置ごとに行末まで読んで戻るので行の長さの二乗かかる。
+// 長さに上限を付け、URL は (?=(...))\N で後戻りさせない（ブラウザの URL の上限よりは十分長い）
+const IMAGE = /!\[([^\]]{0,1000})\]\((?=([^)\s]{1,4000}))\2(?:\s+&quot;([^&]{0,1000})&quot;)?\)/g
+const LINK = /\[([^\]]{1,1000})\]\((?=([^)\s]{1,4000}))\2\)/g
+
 export function inline(text: string): string {
   // タグ（コード・画像・リンク）はできた順に退避し、最後に戻す。
   // 太字・斜体・矢印の置き換えが <img alt=""> や href="" の中に入って属性を壊さないように
@@ -81,11 +86,11 @@ export function inline(text: string): string {
   let s = text.replace(/\u0000/g, '').replace(/`([^`]+)`/g, (_, c: string) => hold(`<code>${esc(c)}</code>`))
   s = esc(s)
   s = s.replace(
-    /!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;([^&]*)&quot;)?\)/g,
+    IMAGE,
     (_, alt: string, src: string, title: string | undefined) =>
       hold(`<img src="${attr(src)}" alt="${attr(alt)}">`) + (title ? `<span class="img-caption">${title}</span>` : '')
   )
-  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (all, label: string, href: string) => {
+  s = s.replace(LINK, (all, label: string, href: string) => {
     const url = attr(href)
     return safeLink(url) ? hold(`<a href="${url}" target="_blank" rel="noopener">`) + label + hold('</a>') : label
   })
@@ -140,12 +145,15 @@ function table(rows: string[]): string {
   return html + '</tbody></table>'
 }
 
+/** 引用の入れ子の深さの上限。これより深い > は文字のまま出す（再帰でスタックがあふれないように） */
+const MAX_QUOTE_DEPTH = 16
+
 const LIST_ITEM = /^(\s*)([-*]|\d+\.)\s+(.*)$/
 
 /**
  * @param ratio 右カラムのとき、左カラムが占める割合（::background:: を右半分に敷く）
  */
-export function blocks(src: string, http?: HttpMap, ratio?: number): string {
+export function blocks(src: string, http?: HttpMap, ratio?: number, depth = 0): string {
   const lines = src.split('\n')
   let html = ''
   let para: string[] = []
@@ -239,7 +247,10 @@ export function blocks(src: string, http?: HttpMap, ratio?: number): string {
       const q: string[] = []
       while (i < lines.length && lines[i]!.startsWith('> ')) q.push(lines[i++]!.slice(2))
       i--
-      html += `<blockquote>${blocks(q.join('\n'), http)}</blockquote>`
+      html +=
+        depth < MAX_QUOTE_DEPTH
+          ? `<blockquote>${blocks(q.join('\n'), http, undefined, depth + 1)}</blockquote>`
+          : `<blockquote><p>${inline(q.join('\n')).replace(/\n/g, '<br>')}</p></blockquote>`
       continue
     }
 
