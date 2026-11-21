@@ -117,5 +117,5 @@ export function homeHead(lang: Lang) {
       },
     ],
   }
-  return [{ tag: 'script' as const, attrs: { type: 'application/ld+json' }, content: JSON.stringify(graph) }]
+  return [{ tag: 'script' as const, attrs: { type: 'application/ld+json' }, content: JSON.stringify(graph).replace(/</g, '\\u003c') }]
 }
