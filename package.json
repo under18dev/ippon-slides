@@ -1,6 +1,6 @@
 {
   "name": "ippon-slides",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Markdown to one-message-per-slide decks (Takahashi method): one self-contained HTML file and a 16:9 PDF, zero dependencies. 1 枚 1 メッセージのスライドを Markdown から作る CLI",
   "keywords": [
     "slides",
